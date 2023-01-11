@@ -19,7 +19,8 @@ import logging
 import pandas as pd
 
 from lib.nl_detection import ClassificationType, Detection
-from lib import nl_variable, nl_topic
+from lib import nl_topic, nl_variable
+from lib.nl_interpretation import Interpretation
 import services.datacommons as dc
 
 
@@ -81,7 +82,7 @@ def _related_places(dcid):
   return related_places
 
 
-def _highlight_svs(sv_df):
+def _highlight_vars(sv_df):
   if sv_df.empty:
     return []
   return sv_df[sv_df['CosineScore'] > 0.4]['SV'].values.tolist()
@@ -134,7 +135,7 @@ def compute(query_detection: Detection):
   #         related_places['similarPlaces']))
 
   # Filter SVs based on scores.
-  highlight_svs = _highlight_svs(svs_df)
+  highlight_svs = _highlight_vars(svs_df)
   topic_svs = nl_topic.get_topics(highlight_svs)
   expanded_svgs = nl_variable.expand_svg(
       [x for x in highlight_svs if x.startswith("dc/g")])
@@ -169,6 +170,146 @@ def compute(query_detection: Detection):
 
   # This is a new try to extend svs to siblingins. This is to extend the
   # stat vars "a little bit"
+
+  # Get extended stat var list
+  if topic_svs:
+    selected_svs = topic_svs.copy()
+    extended_sv_map = nl_topic.get_topic_peers(topic_svs)
+  else:
+    extended_sv_map = nl_variable.extend_svs(selected_svs)
+  all_svs = selected_svs + expanded_svs
+  for sv, svs in extended_sv_map.items():
+    all_svs.extend(svs)
+
+  data_spec = DataSpec(main_place_spec=MainPlaceSpec(place=main_place_dcid,
+                                                     name=main_place_name,
+                                                     type=main_place_type,
+                                                     svs=[]),
+                       nearby_place_spec=NearbyPlaceSpec(sv2places={}),
+                       contained_place_spec=ContainedPlaceSpec(
+                           containing_place=main_place_dcid,
+                           contained_place_type=contained_place_type,
+                           svs=[]),
+                       selected_svs=selected_svs,
+                       expanded_svs=expanded_svs,
+                       topic_svs=topic_svs,
+                       extended_sv_map=extended_sv_map,
+                       primary_sv="",
+                       primary_sv_siblings=[])
+
+  if not all_svs:
+    logging.info("No SVs to use for existence.")
+    return data_spec
+
+  all_places = related_places['nearbyPlaces'] + [main_place_dcid]
+  sample_child_place = _sample_child_place(main_place_dcid,
+                                           contained_place_type)
+  if sample_child_place:
+    all_places.append(sample_child_place)
+
+  sv_existence = dc.observation_existence(all_svs, all_places)
+  if not sv_existence:
+    logging.info("Existence checks for SVs failed.")
+    return data_spec
+
+  for sv in all_svs:
+    for place, exist in sv_existence['variable'][sv]['entity'].items():
+      if not exist:
+        continue
+      if place == main_place_dcid:
+        data_spec.main_place_spec.svs.append(sv)
+      elif place == sample_child_place:
+        data_spec.contained_place_spec.svs.append(sv)
+      else:
+        if sv not in data_spec.nearby_place_spec.sv2places:
+          data_spec.nearby_place_spec.sv2places[sv] = []
+        data_spec.nearby_place_spec.sv2places[sv].append(place)
+
+  # Find the first sv, it may not have data for main place
+  # But this logic might change.
+  data_spec.primary_sv = data_spec.main_place_spec.svs[0]
+  data_spec.primary_sv_siblings = data_spec.extended_sv_map[
+      data_spec.primary_sv]
+
+  return data_spec
+
+def _get_main_sv(intrp: Interpretation) -> str:
+  if not intrp: return ""
+
+  # XXX: Implement me.
+  return ""
+
+
+def _init_interpretation(query_detection: Detection,
+                         prev_intrp: Interpretation) -> Interpretation:
+  intrp = Interpretation()
+
+  # Main place
+  intrp.main_place = query_detection.places_detected.main_place
+
+  # Get contained_place_type.
+  intrp.contained_in_place_type = ""
+  intrp.contained_in_classification = False
+  for classifier in query_detection.classifications:
+    if classifier.type == ClassificationType.CONTAINED_IN:
+      intrp.contained_in_place_type = classifier.attributes.contained_in_place_type.value
+      intrp.contained_in_classification = True
+    elif (classifier.type == ClassificationType.RANKING and
+          classifier.attributes.ranking_type):
+      intrp.ranking_classification = classifier.attributes.ranking_type[0]
+    elif classifier.type == ClassificationType.CORRELATION:
+      prev_main_sv = _get_main_sv(prev_intrp)
+      if prev_main_sv:
+        intrp.correlation_classification = prev_main_sv
+
+  if not intrp.contained_in_classification:
+    related_places = _related_places(intrp.main_place.dcid)
+    if 'childPlacesType' in related_places:
+      intrp.contained_in_place_type = related_places['childPlacesType']
+
+  return intrp
+
+
+def compute_v2(query_detection: Detection,
+               prev_intrp: Interpretation):
+  # Extract main placeinfo and classifiers from query_detection
+  intrp = _init_interpretation(query_detection, prev_intrp)
+
+  # Rest of the logic is about computing variables.
+  #
+  # First, filter variables based on scores.
+  vars_detected = query_detection.svs_detected
+  vars_df = pd.DataFrame({
+      'SV': vars_detected.sv_dcids,
+      'CosineScore': vars_detected.sv_scores
+  })
+  highlight_vars = _highlight_vars(vars_df)
+
+  # There are 3 cases here:
+  # 1. Topic
+  # 2. No variable in detection and previous interpretation
+  # 3. SV or SVG in detection or in previous interpretation 
+  topic_svs = nl_topic.get_topics(highlight_vars)
+  if topic_svs:
+    # This is case (1)
+    pass
+  elif not highlight_vars and (not prev_intrp or not prev_intrp.vars):
+    # This is case (2)
+    pass
+  else:
+    # This is case (3)
+    pass
+
+  expanded_svgs = nl_variable.expand_svg(
+      [x for x in highlight_vars if x.startswith("dc/g")])
+  selected_svs = []
+  expanded_svs = []
+  for sv in highlight_vars:
+    if sv.startswith("dc/g"):
+      if expanded_svgs[sv]:
+        expanded_svs.extend(expanded_svgs[sv])
+    else:
+      selected_svs.append(sv)
 
   # Get extended stat var list
   if topic_svs:

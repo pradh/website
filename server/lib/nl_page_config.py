@@ -208,6 +208,8 @@ def build_page_config(detection: Detection, data_spec: DataSpec,
 
   # Set category data
   category = page_config.categories.add()
+  # QQQ: should this look at every classification?  There can be
+  # contained-in-place and high-low.
   classifier = detection.classifications[0]
   classificationType = classifier.type
 
@@ -256,6 +258,7 @@ def build_page_config(detection: Detection, data_spec: DataSpec,
       ClassificationType.SIMPLE, ClassificationType.OTHER
   ]:
     if use_context_sv:
+      # QQQ: edge-case if the places are same, bail
       # Only place is asked, draw comparison between two places
       block, stat_var_spec_map = _multiple_place_bar_block(
           [context_place, detection.places_detected.main_place], [primary_sv],

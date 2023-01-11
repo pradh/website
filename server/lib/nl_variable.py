@@ -22,7 +22,7 @@ import services.datacommons as dc
 
 
 class Entry(ABC):
-  """Abctract class to hold an entry in VariableStore."""
+  """Abstract class to hold an entry in VariableStore."""
   pass
 
 
