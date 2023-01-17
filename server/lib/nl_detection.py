@@ -190,6 +190,5 @@ class Detection:
   cleaned_query: str
   places_detected: PlaceDetection
   svs_detected: SVDetection
-  query_type: ClassificationType
   classifications: List[NLClassifier]
   query_type: ClassificationType = ClassificationType.UNKNOWN
