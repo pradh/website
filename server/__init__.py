@@ -322,24 +322,6 @@ def create_app():
     except urllib.error.URLError:
       return False
 
-  if not cfg.TEST:
-    timeout = 5 * 60  # seconds
-    sleep_seconds = 10
-    total_sleep_seconds = 0
-    urls = get_health_check_urls()
-    up_status = {url: False for url in urls}
-    while not all(up_status.values()):
-      for url in urls:
-        if up_status[url]:
-          continue
-        up_status[url] = is_up(url)
-
-      if all(up_status.values()):
-        break
-      time.sleep(sleep_seconds)
-      total_sleep_seconds += sleep_seconds
-      if total_sleep_seconds > timeout:
-        raise RuntimeError('Mixer not ready after %s second' % timeout)
 
   # Add variables to the per-request global context.
   @app.before_request

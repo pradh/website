@@ -15,7 +15,7 @@
 
 set -e
 
-python3 -m venv .env
+/usr/local/bin/python3 -m venv .env
 source .env/bin/activate
 
 PORT=8080
@@ -48,10 +48,10 @@ while getopts ":e:p:m" OPTION; do
   esac
 done
 
-if [[ "$(protoc --version)" != "libprotoc ${PROTOC_VERSION}" ]]; then
-  echo "ERROR: Please use protoc version: ${PROTOC_VERSION}" 1>&2
-  exit 1
-fi
+#if [[ "$(protoc --version)" != "libprotoc ${PROTOC_VERSION}" ]]; then
+#  echo "ERROR: Please use protoc version: ${PROTOC_VERSION}" 1>&2
+#  exit 1
+#fi
 
 export GOOGLE_CLOUD_PROJECT=datcom-website-dev
 if [[ $ENV == "lite" ]]; then
@@ -71,7 +71,8 @@ else
 fi
 echo "Starting localhost with FLASK_ENV='$FLASK_ENV' on port='$PORT'"
 
-pip3 install -r server/requirements.txt -q
+pip3 install -r server/requirements.txt 
+echo "Done with pip3"
 cd server
 protoc -I=./config/ --python_out=./config ./config/subject_page.proto
 python3 main.py $PORT

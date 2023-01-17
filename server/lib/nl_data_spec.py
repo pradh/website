@@ -108,7 +108,7 @@ def _sample_child_place(main_place_dcid, contained_place_type):
   return None
 
 
-def compute(query_detection: Detection):
+def compute1(query_detection: Detection):
   # ========    Get Place Info
   # Extract info from query_detection.
   places_detected = query_detection.places_detected
@@ -116,6 +116,9 @@ def compute(query_detection: Detection):
   main_place_name = places_detected.main_place.name
   main_place_type = places_detected.main_place.place_type
 
+  logging.info("old one instead")
+  print("printing old one")
+  
   # ========    Get SV info
   svs_detected = query_detection.svs_detected
   svs_df = pd.DataFrame({

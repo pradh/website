@@ -27,7 +27,7 @@ import re
 import requests
 
 import services.datacommons as dc
-import lib.nl_data_spec as nl_data_spec
+import lib.nl_data_spec_next as nl_data_spec
 import lib.nl_page_config as nl_page_config
 
 bp = Blueprint('nl_next', __name__, url_prefix='/nlnext')
@@ -459,27 +459,6 @@ def _detection(orig_query, cleaned_query, embeddings_build,
   if not place_dcid:
     place_dcid = _infer_place_dcid(places_found)
 
-  # TODO: move this logic away from detection and to the context inheritance.
-  # If a valid DCID was was not found or provided, do not proceed.
-  # Use the default place only if there was no previous context.
-  if not place_dcid:
-    place_name_to_use = default_place
-    if recent_context:
-      place_name_to_use = recent_context.get('place_name')
-
-    place_dcid = _infer_place_dcid([place_name_to_use])
-    if place_name_to_use == default_place:
-      using_default_place = True
-      logging.info(
-          f'Could not find a place dcid and there is no previous context. Using the default place: {default_place}.'
-      )
-      using_default_place = True
-    else:
-      logging.info(
-          f'Could not find a place dcid but there was previous context. Using: {place_name_to_use}.'
-      )
-      using_from_context = True
-
   place_types = dc.property_values([place_dcid], 'typeOf')[place_dcid]
   main_place_type = _get_preferred_type(place_types)
   main_place_name = dc.property_values([place_dcid], 'name')[place_dcid][0]
@@ -525,47 +504,14 @@ def _detection(orig_query, cleaned_query, embeddings_build,
   classifications = []
   if ranking_classification is not None:
     classifications.append(ranking_classification)
-  # TODO: reintroduce temporal classification at some point.
-  # if temporal_classification is not None:
-  #   classifications.append(temporal_classification)
   if contained_in_classification is not None:
     classifications.append(contained_in_classification)
-
-    # Check if the contained in referred to COUNTRY type. If so,
-    # and the default location was chosen, then set it to Earth.
-    if (place_detection.using_default_place and
-        (contained_in_classification.attributes.contained_in_place_type
-         == ContainedInPlaceType.COUNTRY)):
-      logging.info(
-          "Changing detected place to Earth because no place was detected and contained in is about countries."
-      )
-      place_detection.main_place.dcid = "Earth"
-      place_detection.main_place.name = "Earth"
-      place_detection.main_place.place_type = "Place"
-      place_detection.using_default_place = False
 
   # Correlation classification
   correlation_classification = model.heuristic_correlation_classification(query)
   logging.info(f'Correlation classification: {correlation_classification}')
   if correlation_classification is not None:
     classifications.append(correlation_classification)
-
-  # Clustering-based different SV detection is only enabled in LOCAL.
-  if os.environ.get('FLASK_ENV') == 'local' and svs_scores_dict:
-    # Embeddings Indices.
-    sv_index_sorted = []
-    if 'EmbeddingIndex' in svs_scores_dict:
-      sv_index_sorted = svs_scores_dict['EmbeddingIndex']
-
-    # Clustering classification, currently disabled.
-    # clustering_classification = model.query_clustering_detection(
-    #     embeddings_build, query, svs_scores_dict['SV'],
-    #     svs_scores_dict['CosineScore'], sv_index_sorted,
-    #     COSINE_SIMILARITY_CUTOFF)
-    # logging.info(f'Clustering classification: {clustering_classification}')
-    # logging.info(f'Clustering Classification is currently disabled.')
-    # if clustering_classification is not None:
-    #   classifications.append(clustering_classification)
 
   if not classifications:
     # Simple Classification simply means:
@@ -622,6 +568,7 @@ def data():
                                embeddings_build, recent_context)
 
   # Get Data Spec
+
   data_spec = nl_data_spec.compute(query_detection)
   page_config_pb = nl_page_config.build_page_config(query_detection, data_spec,
                                                     context_history)

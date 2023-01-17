@@ -34,8 +34,6 @@ class PlaceDetection:
   query_without_place_substr: str
   places_found: List[str]
   main_place: Place
-  using_default_place: bool
-  using_from_context: bool = False
 
 
 @dataclass
@@ -166,12 +164,14 @@ class CorrelationClassificationAttributes(ClassificationAttributes):
 
 class ClassificationType(Enum):
   OTHER = 0
-  SIMPLE = 1
-  RANKING = 2
-  TEMPORAL = 3
+  UNKNOWN = 1
+  SIMPLE = 2
+  COMPARE = 3
   CONTAINED_IN = 4
-  CORRELATION = 5
-  CLUSTERING = 6
+  RANKING = 5
+  CORRELATION = 6
+  CLUSTERING = 7
+  TEMPORAL = 8
 
 
 @dataclass
@@ -188,4 +188,7 @@ class Detection:
   cleaned_query: str
   places_detected: PlaceDetection
   svs_detected: SVDetection
+  query_type: ClassificationType
   classifications: List[NLClassifier]
+
+  
