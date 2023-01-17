@@ -166,9 +166,9 @@ class CorrelationClassificationAttributes(ClassificationAttributes):
 
 class ClassificationType(Enum):
   OTHER = 0
-  UNKNOWN = 1
-  SIMPLE = 2
-  COMPARE = 3
+  SIMPLE = 1
+  RANKING = 2
+  TEMPORAL = 3
   CONTAINED_IN = 4
   CORRELATION = 5
   CLUSTERING = 6
