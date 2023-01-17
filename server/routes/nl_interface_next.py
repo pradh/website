@@ -27,8 +27,8 @@ import re
 import requests
 
 import services.datacommons as dc
-import lib.nl_data_spec as nl_data_spec
-import lib.nl_page_config as nl_page_config
+import lib.nl_data_spec_next as nl_data_spec
+import lib.nl_page_config_next as nl_page_config
 
 bp = Blueprint('nl_next', __name__, url_prefix='/nlnext')
 
@@ -359,7 +359,7 @@ def _result_with_debug_info(data_dict,
                             status,
                             embeddings_build,
                             query_detection: Detection,
-                            data_spec=None):
+                            utterance=None):
   """Using data_dict and query_detection, format the dictionary response."""
   svs_dict = {
       'SV': query_detection.svs_detected.sv_dcids,
@@ -395,6 +395,7 @@ def _result_with_debug_info(data_dict,
       clustering_classification += f"Cluster # 0: {str(classification.attributes.cluster_1_svs)}. "
       clustering_classification += f"Cluster # 1: {str(classification.attributes.cluster_2_svs)}."
 
+  # TODO: Revisit debug info
   debug_info = {
       "debug": {
           'status':
@@ -426,11 +427,11 @@ def _result_with_debug_info(data_dict,
           'correlation_classification':
               correlation_classification,
           'primary_sv':
-              data_spec.primary_sv,
+              utterance.svs[0],
           'primary_sv_siblings':
-              data_spec.primary_sv_siblings,
-          'data_spec':
-              data_spec,
+              utterance.svs,
+          # 'data_spec':
+          #    utterance,
       },
   }
   # Set the context which contains everything except the charts config.
@@ -439,12 +440,7 @@ def _result_with_debug_info(data_dict,
   return {'context': data_dict, 'config': charts_config}
 
 
-def _detection(orig_query, cleaned_query, embeddings_build,
-               recent_context: Union[Dict, None]) -> Detection:
-  default_place = "United States"
-  using_default_place = False
-  using_from_context = False
-
+def _detection(orig_query, cleaned_query, embeddings_build) -> Detection:
   model = current_app.config['NL_MODEL']
 
   # Step 1: find all relevant places and the name/type of the main place found.
@@ -456,46 +452,26 @@ def _detection(orig_query, cleaned_query, embeddings_build,
   logging.info("Found places: {}".format(places_found))
   # If place_dcid was already set by the url, skip inferring it.
   place_dcid = request.args.get('place_dcid', '')
-  if not place_dcid:
+  if not place_dcid and places_found:
     place_dcid = _infer_place_dcid(places_found)
 
-  # TODO: move this logic away from detection and to the context inheritance.
-  # If a valid DCID was was not found or provided, do not proceed.
-  # Use the default place only if there was no previous context.
-  if not place_dcid:
-    place_name_to_use = default_place
-    if recent_context:
-      place_name_to_use = recent_context.get('place_name')
+  if place_dcid:
+    place_types = dc.property_values([place_dcid], 'typeOf')[place_dcid]
+    main_place_type = _get_preferred_type(place_types)
+    main_place_name = dc.property_values([place_dcid], 'name')[place_dcid][0]
 
-    place_dcid = _infer_place_dcid([place_name_to_use])
-    if place_name_to_use == default_place:
-      using_default_place = True
-      logging.info(
-          f'Could not find a place dcid and there is no previous context. Using the default place: {default_place}.'
-      )
-      using_default_place = True
-    else:
-      logging.info(
-          f'Could not find a place dcid but there was previous context. Using: {place_name_to_use}.'
-      )
-      using_from_context = True
+    # Step 2: replace the places in the query sentence with "".
+    query = _remove_places(cleaned_query, places_found)
 
-  place_types = dc.property_values([place_dcid], 'typeOf')[place_dcid]
-  main_place_type = _get_preferred_type(place_types)
-  main_place_name = dc.property_values([place_dcid], 'name')[place_dcid][0]
-
-  # Step 2: replace the places in the query sentence with "".
-  query = _remove_places(cleaned_query, places_found)
-
-  # Set PlaceDetection.
-  place_detection = PlaceDetection(query_original=orig_query,
-                                   query_without_place_substr=query,
-                                   places_found=places_found,
-                                   main_place=Place(dcid=place_dcid,
-                                                    name=main_place_name,
-                                                    place_type=main_place_type),
-                                   using_default_place=using_default_place,
-                                   using_from_context=using_from_context)
+    # Set PlaceDetection.
+    place_detection = PlaceDetection(query_original=orig_query,
+                                     query_without_place_substr=query,
+                                     places_found=places_found,
+                                     main_place=Place(dcid=place_dcid,
+                                                      name=main_place_name,
+                                                      place_type=main_place_type))
+  else:
+    place_detection = None
 
   # Step 3: Identify the SV matched based on the query.
   svs_scores_dict = _empty_svs_score_dict()
@@ -525,24 +501,8 @@ def _detection(orig_query, cleaned_query, embeddings_build,
   classifications = []
   if ranking_classification is not None:
     classifications.append(ranking_classification)
-  # TODO: reintroduce temporal classification at some point.
-  # if temporal_classification is not None:
-  #   classifications.append(temporal_classification)
   if contained_in_classification is not None:
     classifications.append(contained_in_classification)
-
-    # Check if the contained in referred to COUNTRY type. If so,
-    # and the default location was chosen, then set it to Earth.
-    if (place_detection.using_default_place and
-        (contained_in_classification.attributes.contained_in_place_type
-         == ContainedInPlaceType.COUNTRY)):
-      logging.info(
-          "Changing detected place to Earth because no place was detected and contained in is about countries."
-      )
-      place_detection.main_place.dcid = "Earth"
-      place_detection.main_place.name = "Earth"
-      place_detection.main_place.place_type = "Place"
-      place_detection.using_default_place = False
 
   # Correlation classification
   correlation_classification = model.heuristic_correlation_classification(query)
@@ -550,37 +510,35 @@ def _detection(orig_query, cleaned_query, embeddings_build,
   if correlation_classification is not None:
     classifications.append(correlation_classification)
 
-  # Clustering-based different SV detection is only enabled in LOCAL.
-  if os.environ.get('FLASK_ENV') == 'local' and svs_scores_dict:
-    # Embeddings Indices.
-    sv_index_sorted = []
-    if 'EmbeddingIndex' in svs_scores_dict:
-      sv_index_sorted = svs_scores_dict['EmbeddingIndex']
-
-    # Clustering classification, currently disabled.
-    # clustering_classification = model.query_clustering_detection(
-    #     embeddings_build, query, svs_scores_dict['SV'],
-    #     svs_scores_dict['CosineScore'], sv_index_sorted,
-    #     COSINE_SIMILARITY_CUTOFF)
-    # logging.info(f'Clustering classification: {clustering_classification}')
-    # logging.info(f'Clustering Classification is currently disabled.')
-    # if clustering_classification is not None:
-    #   classifications.append(clustering_classification)
-
   if not classifications:
-    # Simple Classification simply means:
-    # Use the main place and matched SVs. There are no
-    # rankings, temporal, contained_in or correlations.
+    # if not classification is found, it should default to UNKNOWN (not SIMPLE)
     classifications.append(
-        NLClassifier(type=ClassificationType.SIMPLE,
+        NLClassifier(type=ClassificationType.UNKNOWN,
                      attributes=SimpleClassificationAttributes()))
 
   return Detection(original_query=orig_query,
                    cleaned_query=cleaned_query,
                    places_detected=place_detection,
                    svs_detected=sv_detection,
+                   query_type = queryTypeFromClassifications(classifications),
                    classifications=classifications)
 
+def queryTypeFromClassifications(classifications):
+  ans = ClassificationType.SIMPLE
+  for cl in classifications:
+    if (classificationToInt(cl.type) > classificationToInt(ans)):
+      ans = cl.type
+  return ans
+
+def classificationToInt(en):
+  if (en == ClassificationType.SIMPLE):
+    return 1
+  elif (en == ClassificationType.CONTAINED_IN):
+    return 3
+  elif (en == ClassificationType.RANKING):
+    return 4
+  else:
+    return 0
 
 @bp.route('/', strict_slashes=True)
 def page():
@@ -588,6 +546,7 @@ def page():
       not current_app.config['NL_MODEL']):
     flask.abort(404)
   return render_template('/nl_interface.html',
+                         data_api='nlnext/data',
                          maps_api_key=current_app.config['MAPS_API_KEY'])
 
 
@@ -615,17 +574,14 @@ def data():
 
   # Query detection routine:
   # Returns detection for Place, SVs and Query Classifications.
-  recent_context = None
-  if context_history:
-    recent_context = context_history[-1]
   query_detection = _detection(str(escape(original_query)), query,
-                               embeddings_build, recent_context)
+                               embeddings_build)
 
   # Get Data Spec
-  data_spec = nl_data_spec.compute(query_detection)
-  page_config_pb = nl_page_config.build_page_config(query_detection, data_spec,
-                                                    context_history)
-  page_config = json.loads(MessageToJson(page_config_pb))
+  utterance = nl_data_spec.compute(query_detection)
+  if utterance.places:
+    page_config_pb = nl_page_config.build_page_config(utterance)
+    page_config = json.loads(MessageToJson(page_config_pb))
 
   d = {
       'place_type': query_detection.places_detected.main_place.place_type,
@@ -634,15 +590,13 @@ def data():
       'config': page_config,
   }
   status_str = "Successful"
-  if query_detection.places_detected.using_default_place or not data_spec.selected_svs:
+  if query_detection.places_detected.using_default_place or not utterance.svs:
     status_str = ""
 
-  if query_detection.places_detected.using_default_place:
-    status_str += f'**No Place Found** (using default: {default_place}). '
-  elif query_detection.places_detected.using_from_context:
-    status_str += f'**No Place Found** (using context: {query_detection.places_detected.main_place.name}). '
-  if not data_spec.selected_svs:
+  if not utterance.places:
+    status_str += f'**No Place Found**. '
+  elif not utterance.svs:
     status_str += '**No SVs Found**.'
 
   return _result_with_debug_info(d, status_str, embeddings_build,
-                                 query_detection, data_spec)
+                                 query_detection, utterance)

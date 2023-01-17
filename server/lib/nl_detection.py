@@ -34,7 +34,7 @@ class PlaceDetection:
   query_without_place_substr: str
   places_found: List[str]
   main_place: Place
-  using_default_place: bool
+  using_default_place: bool = False
   using_from_context: bool = False
 
 
@@ -172,6 +172,8 @@ class ClassificationType(Enum):
   CONTAINED_IN = 4
   CORRELATION = 5
   CLUSTERING = 6
+  COMPARE = 7
+  UNKNOWN = 8
 
 
 @dataclass
@@ -189,3 +191,4 @@ class Detection:
   places_detected: PlaceDetection
   svs_detected: SVDetection
   classifications: List[NLClassifier]
+  query_type: ClassificationType = ClassificationType.UNKNOWN

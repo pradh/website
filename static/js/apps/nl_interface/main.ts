@@ -28,8 +28,9 @@ window.onload = () => {
 };
 
 function renderPage(): void {
+  const dataApi = document.getElementById('nldata').dataset.api
   ReactDOM.render(
-    React.createElement(App),
+    React.createElement(App, {dataApi}),
     document.getElementById("nl-interface")
   );
 }

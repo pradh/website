@@ -1,4 +1,4 @@
-# Copyright 2022 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -590,6 +590,7 @@ def page():
       not current_app.config['NL_MODEL']):
     flask.abort(404)
   return render_template('/nl_interface.html',
+                         data_api='nl/data',
                          maps_api_key=current_app.config['MAPS_API_KEY'])
 
 

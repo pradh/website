@@ -23,7 +23,11 @@ import React, { useEffect, useState } from "react";
 import { QueryResult } from "./query_result";
 import { QuerySearch } from "./query_search";
 
-export function App(): JSX.Element {
+interface AppPropType {
+  dataApi: string;
+}
+
+export function App(props: AppPropType): JSX.Element {
   const [queries, setQueries] = useState<string[]>([]);
   const [contextList, setContextList] = useState<any[]>([]);
 
@@ -65,6 +69,7 @@ export function App(): JSX.Element {
       query={q}
       contextHistory={contextList.slice(0, i)}
       addContextCallback={addContext}
+      dataApi={props.dataApi}
     ></QueryResult>
   ));
 

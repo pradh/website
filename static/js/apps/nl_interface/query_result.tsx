@@ -34,6 +34,7 @@ export interface QueryResultProps {
   queryIdx: number;
   contextHistory: any[];
   addContextCallback: (any, number) => void;
+  dataApi: string;
 }
 
 export const QueryResult = memo(function QueryResult(
@@ -60,14 +61,14 @@ export const QueryResult = memo(function QueryResult(
   }, [isLoading]);
 
   useEffect(() => {
-    fetchData(props.query, selectedBuild);
+    fetchData(props.query, selectedBuild, props.dataApi);
   }, [props.query, selectedBuild]);
 
-  function fetchData(query: string, build: string): void {
+  function fetchData(query: string, build: string, dataApi: string): void {
     setIsLoading(true);
     console.log("context:", props.query, props.contextHistory);
     axios
-      .post(`/nl/data?q=${query}&build=${build}`, {
+      .post(`/${dataApi}?q=${query}&build=${build}`, {
         contextHistory: props.contextHistory,
       })
       .then((resp) => {
