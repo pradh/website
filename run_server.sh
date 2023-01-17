@@ -15,7 +15,7 @@
 
 set -e
 
-python3 -m venv .env
+/usr/local/bin/python3 -m venv .env
 source .env/bin/activate
 
 PORT=8080

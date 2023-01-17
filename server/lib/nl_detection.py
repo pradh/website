@@ -166,9 +166,9 @@ class CorrelationClassificationAttributes(ClassificationAttributes):
 
 class ClassificationType(Enum):
   OTHER = 0
-  SIMPLE = 1
-  RANKING = 2
-  TEMPORAL = 3
+  UNKNOWN = 1
+  SIMPLE = 2
+  COMPARE = 3
   CONTAINED_IN = 4
   CORRELATION = 5
   CLUSTERING = 6
@@ -190,5 +190,6 @@ class Detection:
   cleaned_query: str
   places_detected: PlaceDetection
   svs_detected: SVDetection
+  query_type: ClassificationType
   classifications: List[NLClassifier]
   query_type: ClassificationType = ClassificationType.UNKNOWN
