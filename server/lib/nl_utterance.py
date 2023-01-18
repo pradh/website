@@ -18,7 +18,7 @@ from typing import List, Dict
 
 from dataclasses import dataclass
 from enum import IntEnum
-from lib.nl_detection import ClassificationType, Detection, NLClassifier, Place, RankingClassificationAttributes, ContainedInClassificationAttributes, SimpleClassificationAttributes
+from lib.nl_detection import ClassificationType, Detection, NLClassifier, Place, RankingClassificationAttributes, ContainedInClassificationAttributes, SimpleClassificationAttributes, ContainedInPlaceType
 
 # How far back do we do
 CNTXT_LOOKBACK_LIMIT = 3
@@ -89,7 +89,11 @@ def _save_classifications(classifications: List[NLClassifier]) -> List[Dict]:
     cdict['type'] = c.type
 
     if isinstance(c.attributes, ContainedInClassificationAttributes):
-      cdict['contained_in_place_type'] = c.attributes.contained_in_place_type
+      cip = c.attributes.contained_in_place_type
+      if isinstance(cip, ContainedInPlaceType):
+        cdict['contained_in_place_type'] = cip.value
+      else:
+        cdict['contained_in_place_type'] = cip
     elif isinstance(c.attributes, RankingClassificationAttributes):
       cdict['ranking_type'] = c.attributes.ranking_type
 

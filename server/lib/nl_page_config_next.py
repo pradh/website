@@ -208,7 +208,7 @@ def _multiple_place_bar_block(places: List[Place], svs: List[str], sv2name):
 def _map_chart_block(pri_place: Place, pri_sv: str, place_type: str, sv2name):
   block = subject_page_pb2.Block()
   block.title = "{} in {}".format(
-      pluralize_place_type(place_type.capitalize(), pri_place.name))
+      pluralize_place_type(place_type.capitalize()), pri_place.name)
   column = block.columns.add()
   # The main tile
   tile = column.tiles.add()
@@ -259,7 +259,7 @@ def _set_ranking_tile_spec(ranking_type: RankingType, pri_sv: str, ranking_tile_
 def _ranking_chart_block(pri_place: Place, pri_sv: str, place_type: str, ranking_type: RankingType, sv2name):
   block = subject_page_pb2.Block()
   block.title = "{} in {}".format(
-      pluralize_place_type(place_type.capitalize(), pri_place.name))
+      pluralize_place_type(place_type.capitalize()), pri_place.name)
   column = block.columns.add()
   # The main tile
   tile = column.tiles.add()
@@ -362,10 +362,11 @@ def build_page_config(uttr: Utterance):
   # Init
   page_config = subject_page_pb2.SubjectPageConfig()
   # Set metadata
-  page_config.metadata.place_dcid.append(uttr.rankedCharts[0].places[0].dcid)
-  # TODO: Get from ContainedInPlace chart?
-  # page_config.metadata.contained_place_types[
-  #     main_place_spec.type] = contained_place_spec.contained_place_type
+  first_chart = uttr.rankedCharts[0]
+  main_place = first_chart.places[0]
+  page_config.metadata.place_dcid.append(main_place.dcid)
+  if first_chart.chart_type == ChartType.MAP_CHART or first_chart.chart_type == ChartType.RANKING_CHART:
+    page_config.metadata.contained_place_types[main_place.place_type] = first_chart.attr['place_type']
 
   # Set category data
   category = page_config.categories.add()
@@ -399,7 +400,9 @@ def build_page_config(uttr: Utterance):
       if not _is_map_or_ranking_compatible(cspec):
         continue
       block, stat_var_spec_map = _ranking_chart_block(cspec.places[0], cspec.svs[0],
-                                                      cspec.attr['place_type'], sv2name)
+                                                      cspec.attr['place_type'],
+                                                      cspec.attr['ranking_type'],
+                                                      sv2name)
 
     category.blocks.append(block)
     for sv_key, spec in stat_var_spec_map.items():

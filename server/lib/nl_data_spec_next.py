@@ -18,7 +18,7 @@ from typing import Dict, List
 import logging
 from enum import Enum
 
-from lib.nl_detection import ClassificationType, Detection, NLClassifier, Place, ContainedInPlaceType, ContainedInClassificationAttributes
+from lib.nl_detection import ClassificationType, Detection, NLClassifier, Place, ContainedInPlaceType, ContainedInClassificationAttributes, RankingType, RankingClassificationAttributes
 from lib import nl_variable, nl_topic
 from lib.nl_utterance import Utterance, ChartOriginType, ChartSpec, ChartType, CNTXT_LOOKBACK_LIMIT
 import services.datacommons as dc
@@ -56,7 +56,7 @@ def compute(query_detection: Detection, currentUtterance: Utterance):
   elif (uttr.query_type == ClassificationType.COMPARE):
     populateCompare(uttr)
   elif (uttr.query_type == ClassificationType.CONTAINED_IN):
-    populateContainedin(uttr)
+    populateContainedIn(uttr)
   elif (uttr.query_type == ClassificationType.RANKING):
     populateRanking(uttr)
 
@@ -64,7 +64,9 @@ def compute(query_detection: Detection, currentUtterance: Utterance):
   return uttr
 
 
-#Handler for simple charts  
+# Handler for simple charts  
+# TODO: Change this to use generic handlers
+
 def populateSimple(uttr):
   for pl in uttr.places:
     if (populateSimpleInt(uttr, pl)):
@@ -97,49 +99,143 @@ def addSimpleCharts (place, svs, uttr):
   for rank, sv in enumerate(svs):
     expanded_svs_list = svgOrTopicToSVs(sv, rank) 
     for svs in expanded_svs_list:
-      svs = svsExistForPlaces([place], svs)[place.dcid]
+      svs = svsExistForPlaces([place.dcid], svs)[place.dcid]
       if svs:
         if (addOneChartToUtterance(ChartType.TIMELINE_CHART, uttr, svs, [place], ChartOriginType.PRIMARY_CHART)):
           found = True
 
   sv2extensions = nl_variable.extend_svs(svs)
   for sv, extended_svs in sv2extensions.items():
-    extended_svs = svsExistForPlaces([place], extended_svs)[place.dcid]
+    extended_svs = svsExistForPlaces([place.dcid], extended_svs)[place.dcid]
     if extended_svs:
       if (addOneChartToUtterance(ChartType.TIMELINE_CHART, uttr, extended_svs, [place],  ChartOriginType.SECONDARY_CHART)):
         found = True
   return found
 
 
-#Handler for Ranking
+# Handlers for containedInPlace 
+
+def populateContainedIn(uttr):
+  classifications = classificationsOfTypeFromContext(uttr, ClassificationType.CONTAINED_IN)
+  for classification in classifications:
+    if not classification or not isinstance(classification.attributes, ContainedInClassificationAttributes):
+      continue
+    place_type = classification.attributes.contained_in_place_type
+    if populateCharts(uttr, populateContainedInCb, fallbackContainedInCb, place_type=place_type):
+      return True
+  place_type = ContainedInPlaceType.COUNTY  # poor default. should do this based on main place
+  return populateCharts(uttr, populateContainedInCb, fallbackContainedInCb, place_type=place_type)
+
+
+def populateContainedInCb(uttr, svs, containing_place, chart_origin, place_type, _):
+  if not place_type:
+    return False
+  if len(svs) > 1:
+    # We don't handle peer group SVs
+    return False
+  addOneChartToUtterance(ChartType.MAP_CHART, uttr, svs, [containing_place], chart_origin, place_type)
+  return True
+
+
+def fallbackContainedInCb(uttr, containing_place, chart_origin, place_type, _):
+  # TODO: Poor choice, do better.
+  sv = "Count_Person"
+  return populateContainedInCb(uttr, [sv], containing_place, chart_origin, place_type, _)
+
+
+# Handlers for Ranking
+
 def populateRanking(uttr):
+  # Get all the classifications in the context.
+  ranking_classifications = classificationsOfTypeFromContext(uttr, ClassificationType.RANKING)
+  contained_classifications = classificationsOfTypeFromContext(uttr, ClassificationType.CONTAINED_IN)
 
-  classification = classificationOfTypeFromContext(uttr, ClassificationType.CONTAINED_IN)
-  place_type = ContainedInPlaceType.COUNTY #poor default. should do this based on main place
-  if (classification):
-    print(classification)
-    if (isinstance(classification.attributes, ContainedInClassificationAttributes)):
-      place_type = classification.attributes.contained_in_place_type
+  # Loop in order until we find success.
+  for ranking_classification in ranking_classifications:
+    if not ranking_classification or not isinstance(ranking_classification.attributes, RankingClassificationAttributes):
+      continue
+    if not ranking_classification.attributes.ranking_type:
+      continue
+    ranking_type = ranking_classification.attributes.ranking_type[0]
+    for contained_classification in contained_classifications:
+      if not contained_classification or not isinstance(contained_classification.attributes, ContainedInClassificationAttributes):
+        continue
+      place_type = contained_classification.attributes.contained_in_place_type
+      if populateCharts(uttr, populateRankingCb, fallbackRankingCb, place_type=place_type, ranking_type=ranking_type):
+        return True
 
-  if (len(uttr.places) > 0):
-    containing_place = uttr.places[0] # should eventually be able to handle multiple places
-  else:
-    cntxt_places = placesFromContext(uttr)
-    if (len(cntxt_places) > 0):
-      containing_place = cntxt_places[0]
-    else:
-      containing_place = "country/USA" # should be based on place_type
+  # Fallback
+  ranking_type = RankingType.HIGH
+  place_type = ContainedInPlaceType.COUNTY
+  return populateCharts(uttr, populateRankingCb, fallbackRankingCb, place_type=place_type, ranking_type=ranking_type)
 
+
+def populateRankingCb(uttr, svs, containing_place, chart_origin, place_type, ranking_type):
+  if not place_type or not ranking_type:
+    return False
+
+  if len(svs) > 1:
+    # We don't handle peer group SVs
+    return False
+  addOneChartToUtterance(ChartType.RANKING_CHART, uttr, svs, [containing_place], chart_origin, place_type, ranking_type)
+  return True
+
+
+def fallbackRankingCb(uttr, containing_place, chart_origin, place_type, ranking_type):
+  # TODO: Poor choice, do better.
+  sv = "Count_Person"
+  return populateRankingCb(uttr, [sv], containing_place, chart_origin, place_type, ranking_type)
+
+
+# Generic processors that invoke above callbacks
+
+def populateCharts(uttr, main_cb, fallback_cb, place_type=None, ranking_type=None):
+  for pl in uttr.places:
+    if (populateChartsForPlace(uttr, pl, main_cb, fallback_cb, place_type, ranking_type)):
+        return True
+  for pl in placesFromContext(uttr):
+    if (populateChartsForPlace(uttr, pl, main_cb, fallback_cb, place_type, ranking_type)):
+        return True
+  return False
+
+
+def populateChartsForPlace(uttr, place, main_cb, fallback_cb, place_type, ranking_type):
   if (len(uttr.svs) > 0):
-    sv = uttr.svs[0]
-  else:
-    cntxt_svs = svsFromContext(uttr)
-    if (len(cntxt_svs) > 0):
-      sv = cntxt_svs[0]
-    else:
-      sv = "Population" # lame
+    foundCharts = addCharts(place, uttr.svs, uttr, main_cb, place_type, ranking_type)
+    if foundCharts:
+      return True
+  for svs in svsFromContext(uttr):
+    foundCharts = addCharts(place, svs, uttr, main_cb, place_type, ranking_type)
+    if foundCharts:
+        return True
+  return fallback_cb(uttr, place, ChartOriginType.PRIMARY_CHART, place_type, ranking_type)
 
-  addOneChartToUtterance(ChartType.RANKING_CHART, uttr, [sv], [containing_place], ChartOriginType.PRIMARY_CHART, place_type)
+
+# TODO: Do existence check for child places
+def addCharts(place, svs, uttr, callback, place_type, ranking_type):
+  print("Add chart %s %s" % (place.name, svs))
+
+  # If there is a child place_type, use a child place sample.
+  place_to_check = place.dcid
+  if place_type:
+    place_to_check = _sample_child_place(place.dcid, place_type)
+
+  found = False
+  for rank, sv in enumerate(svs):
+    expanded_svs_list = svgOrTopicToSVs(sv, rank) 
+    for svs in expanded_svs_list:
+      svs = svsExistForPlaces([place_to_check], svs)[place_to_check]
+      if svs:
+        if callback(uttr, svs, place, ChartOriginType.PRIMARY_CHART, place_type, ranking_type):
+          found = True
+
+  sv2extensions = nl_variable.extend_svs(svs)
+  for sv, extended_svs in sv2extensions.items():
+    extended_svs = svsExistForPlaces([place_to_check], extended_svs)[place_to_check]
+    if extended_svs:
+      if callback(uttr, extended_svs, place, ChartOriginType.SECONDARY_CHART, place_type, ranking_type):
+        found = True
+  return found
 
 
 # More general utilities
@@ -177,19 +273,20 @@ def queryTypeFromContext(uttr):
   return ClassificationType.SIMPLE
 
 
-def classificationOfTypeFromContext(uttr, ctype):
+def classificationsOfTypeFromContext(uttr, ctype):
+  result = []
   for cl in uttr.classifications:
     if (cl.type == ctype):
-      return cl
+      result.append(cl)
   prev_uttr_count = 0
   prev = uttr.prev_utterance
   while (prev and prev_uttr_count < CNTXT_LOOKBACK_LIMIT):
     for cl in uttr.classifications:
       if (cl.type == ctype):
-        return cl
+        result.append(cl)
     prev = prev.prev_utterance
     prev_uttr_count = prev_uttr_count + 1
-  return None
+  return result
 
 
 # Returns a list of lists.  Inner list may contain a single SV or a peer-group of SVs.
@@ -221,17 +318,15 @@ def rankCharts (utterance):
 
 # Returns a map of place DCID -> existing SVs.  The returned map always has keys for places.
 def svsExistForPlaces(places, svs):
-  place_dcids = [p.dcid for p in places]
-
   # Initialize return value
   place2sv = {}
-  for p in place_dcids:
+  for p in places:
     place2sv[p] = []
 
   if not svs:
     return place2sv
 
-  sv_existence = dc.observation_existence(svs, place_dcids)
+  sv_existence = dc.observation_existence(svs, places)
   if not sv_existence:
     logging.error("Existence checks for SVs failed.")
     return place2sv
@@ -257,12 +352,14 @@ def isSV(sv):
   return not (isTopic(sv) or isSVG(sv))
 
 
-def addOneChartToUtterance(chart_type, utterance, svs, places, primary_vs_secondary, place_type=None):
+def addOneChartToUtterance(chart_type, utterance, svs, places, primary_vs_secondary, place_type=None, ranking_type=None):
+  if place_type:
+    place_type = place_type.value
   ch = ChartSpec(chart_type=chart_type,
                  svs=svs,
                  places=places,
                  utterance=utterance,
-                 attr={"class" : primary_vs_secondary, "place_type" : place_type})
+                 attr={"class" : primary_vs_secondary, "place_type" : place_type, "ranking_type": ranking_type})
   utterance.chartCandidates.append(ch)
   return True
 
@@ -278,3 +375,25 @@ def filterSVs (sv_list, sv_score):
       ans.append(sv_list[i])
     i = i + 1
   return ans
+
+
+# TODO: dedupe with nl_data_spec.py
+def _sample_child_place(main_place_dcid, contained_place_type):
+  """Find a sampled child place"""
+  if not contained_place_type:
+    return None
+  if contained_place_type == "City":
+    return "geoId/0667000"
+  child_places = dc.get_places_in([main_place_dcid], contained_place_type)
+  if child_places.get(main_place_dcid):
+    return child_places[main_place_dcid][0]
+  else:
+    triples = dc.triples(main_place_dcid, 'in').get('triples')
+    if triples:
+      for prop, nodes in triples.items():
+        if prop != 'containedInPlace' and prop != 'geoOverlaps':
+          continue
+        for node in nodes['nodes']:
+          if contained_place_type in node['types']:
+            return node['dcid']
+  return main_place_dcid

@@ -91,11 +91,10 @@ export const QueryResult = memo(function QueryResult(
         if (categories.length > 0) {
           var main_place = {};
           if (is_nl_next) {
-            // TODO: Find alternative for this.
             main_place = resp.data["place"];
           } else {
             main_place = {
-              "type": context["place_type"],
+              "place_type": context["place_type"],
               "name": context["place_name"],
               "dcid": context["place_dcid"],
             };
@@ -104,7 +103,7 @@ export const QueryResult = memo(function QueryResult(
             place: {
               dcid: main_place["dcid"],
               name: main_place["name"],
-              types: [main_place["type"]],
+              types: [main_place["place_type"]],
             },
             config: resp.data["config"],
           });
