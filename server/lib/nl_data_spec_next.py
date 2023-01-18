@@ -90,20 +90,24 @@ def populateSimpleInt(uttr, place):
   return False
 
 
+# TODO: Coalesce all the SV existence calls
 def addSimpleCharts (place, svs, uttr):
   print("Add line chart %s %s" % (place.name, svs))
   found = False
-  for sv in svs:
-    expanded_svs = svgOrTopicToSVs(sv) 
-    for sv in expanded_svs:
-      if (svExistsForPlace(place, sv)):
-        if (addOneChartToUtterance(ChartType.TIMELINE_CHART, uttr, [sv], [place], ChartOriginType.PRIMARY_CHART)):
+  for rank, sv in enumerate(svs):
+    expanded_svs_list = svgOrTopicToSVs(sv, rank) 
+    for svs in expanded_svs_list:
+      svs = svsExistForPlaces([place], svs)[place.dcid]
+      if svs:
+        if (addOneChartToUtterance(ChartType.TIMELINE_CHART, uttr, svs, [place], ChartOriginType.PRIMARY_CHART)):
           found = True
 
-  extended_svs = nl_variable.extend_svs(svs)
-  if (extended_svs):
-    if (addOneChartToUtterance(ChartType.TIMELINE_CHART, uttr, extended_svs, [place],  ChartOriginType.SECONDARY_CHART)):
-      found = True
+  sv2extensions = nl_variable.extend_svs(svs)
+  for sv, extended_svs in sv2extensions.items():
+    extended_svs = svsExistForPlaces([place], extended_svs)[place.dcid]
+    if extended_svs:
+      if (addOneChartToUtterance(ChartType.TIMELINE_CHART, uttr, extended_svs, [place],  ChartOriginType.SECONDARY_CHART)):
+        found = True
   return found
 
 
@@ -172,6 +176,7 @@ def queryTypeFromContext(uttr):
     prev_uttr_count = prev_uttr_count + 1
   return ClassificationType.SIMPLE
 
+
 def classificationOfTypeFromContext(uttr, ctype):
   for cl in uttr.classifications:
     if (cl.type == ctype):
@@ -186,17 +191,26 @@ def classificationOfTypeFromContext(uttr, ctype):
     prev_uttr_count = prev_uttr_count + 1
   return None
 
-def svgOrTopicToSVs (sv):
-  if (not ("svg" in sv or "topic" in sv)):
-    return [sv]
-  if ("topic" in sv):
-    # TODO: Handle expansion of SV Peer Groups
-    vals = dc.get_property_values([sv], "relevantVariable")
-    if (sv in vals):
-      return vals[sv]
-  if ("svg" in sv) :
-    return expand_svg(sv)
-  return None
+
+# Returns a list of lists.  Inner list may contain a single SV or a peer-group of SVs.
+def svgOrTopicToSVs(sv, rank):
+  if isSV(sv):
+    return [[sv]]
+  if isTopic(sv):
+    topic_vars = nl_topic.get_topic_vars(sv, rank)
+    peer_groups = nl_topic.get_topic_peers(topic_vars)
+    res = []
+    for v in topic_vars:
+      if v in peer_groups and peer_groups[v]:
+        res.append(peer_groups[v])
+      else:
+        res.append([v])
+    return res
+  if isSVG(sv):
+    svg2sv = nl_variable.expand_svg(sv)
+    if sv in svg2sv:
+      return svg2sv[sv]
+  return []
           
       
 def rankCharts (utterance):
@@ -205,13 +219,43 @@ def rankCharts (utterance):
   utterance.rankedCharts = utterance.chartCandidates
 
 
-def svExistsForPlace(place, sv):
-  # Needs work :)
-  return True
+# Returns a map of place DCID -> existing SVs.  The returned map always has keys for places.
+def svsExistForPlaces(places, svs):
+  place_dcids = [p.dcid for p in places]
+
+  # Initialize return value
+  place2sv = {}
+  for p in place_dcids:
+    place2sv[p] = []
+
+  if not svs:
+    return place2sv
+
+  sv_existence = dc.observation_existence(svs, place_dcids)
+  if not sv_existence:
+    logging.error("Existence checks for SVs failed.")
+    return place2sv
+
+  for sv in svs:
+    for place, exist in sv_existence['variable'][sv]['entity'].items():
+      if not exist:
+        continue
+      place2sv[place].append(sv)
+
+  return place2sv
+
+
+def isTopic(sv):
+  return sv.startswith("dc/topic/")
+
+
+def isSVG(sv):
+  return sv.startswith("dc/g/")
+
 
 def isSV(sv):
-  #needs work
-  return (not ("svg" in sv or "topic" in sv))
+  return not (isTopic(sv) or isSVG(sv))
+
 
 def addOneChartToUtterance(chart_type, utterance, svs, places, primary_vs_secondary, place_type=None):
   ch = ChartSpec(chart_type=chart_type,
