@@ -15,7 +15,7 @@
 from typing import List, Dict
 
 from config import subject_page_pb2
-from lib.nl_utterance import Utterance, ChartType
+from lib.nl_utterance import Utterance, ChartType, ChartSpec
 from lib.nl_detection import ClassificationType, NLClassifier, Place, RankingType
 from lib import nl_variable, nl_topic
 from services import datacommons as dc
@@ -54,8 +54,13 @@ def pluralize_place_type(place_type: str) -> str:
                                    PLACE_TYPE_TO_PLURALS["place"])
 
 
-def get_sv_name(svs):
-  sv2name_raw = dc.property_values(svs, 'name')
+def get_sv_name(uttr: Utterance):
+  all_svs = set()
+  for cspec in uttr.rankedCharts:
+    all_svs.update(cspec.svs)
+  all_svs = list(all_svs)
+
+  sv2name_raw = dc.property_values(all_svs, 'name')
   uncurated_names = {
       sv: names[0] if names else sv for sv, names in sv2name_raw.items()
   }
@@ -68,7 +73,7 @@ def get_sv_name(svs):
   sv_name_map = {}
   # If a curated name is found return that,
   # Else return the name property for SV.
-  for sv in svs:
+  for sv in all_svs:
     if sv in title_by_sv_dcid:
       sv_name_map[sv] = title_by_sv_dcid[sv]
     else:
@@ -200,6 +205,112 @@ def _multiple_place_bar_block(places: List[Place], svs: List[str], sv2name):
   return block, stat_var_spec_map
 
 
+def _map_chart_block(pri_place: Place, pri_sv: str, place_type: str, sv2name):
+  block = subject_page_pb2.Block()
+  block.title = "{} in {}".format(
+      pluralize_place_type(place_type.capitalize(), pri_place.name))
+  column = block.columns.add()
+  # The main tile
+  tile = column.tiles.add()
+  tile.stat_var_key.append(pri_sv)
+  tile.type = subject_page_pb2.Tile.TileType.MAP
+  tile.title = sv2name[pri_sv] + ' (${date})'
+
+  stat_var_spec_map = {}
+  stat_var_spec_map[pri_sv] = subject_page_pb2.StatVarSpec(stat_var=pri_sv, name=sv2name[pri_sv])
+
+      # The per capita tile
+  if _should_add_percapita(pri_sv):
+    tile = column.tiles.add()
+    sv_key = pri_sv + "_pc"
+    tile.stat_var_key.append(sv_key)
+    tile.type = subject_page_pb2.Tile.TileType.MAP
+    tile.title = "Per Capita " + sv2name[pri_sv] + ' (${date})'
+    stat_var_spec_map[sv_key] = subject_page_pb2.StatVarSpec(
+      stat_var=pri_sv,
+      denom="Count_Person",
+      name=sv2name[pri_sv],
+      scaling=100,
+      unit="%")
+  return block, stat_var_spec_map
+
+
+def _set_ranking_tile_spec(ranking_type: RankingType, pri_sv: str, ranking_tile_spec: subject_page_pb2.RankingTileSpec):
+  ranking_tile_spec.ranking_count = 10
+  if "CriminalActivities" in pri_sv:
+    # first check if "best" or "worst"
+    if ranking_type == RankingType.BEST:
+      ranking_tile_spec.show_lowest = True
+    elif ranking_type == RankingType.WORST:
+      ranking_tile_spec.show_highest = True
+    else:
+      # otherwise, render normally
+      if ranking_type == RankingType.HIGH:
+        ranking_tile_spec.show_highest = True
+      if ranking_type == RankingType.LOW:
+        ranking_tile_spec.show_lowest = True
+  else:
+    if ranking_type == RankingType.HIGH:
+      ranking_tile_spec.show_highest = True
+    if ranking_type == RankingType.LOW:
+      ranking_tile_spec.show_lowest = True
+
+
+def _ranking_chart_block(pri_place: Place, pri_sv: str, place_type: str, ranking_type: RankingType, sv2name):
+  block = subject_page_pb2.Block()
+  block.title = "{} in {}".format(
+      pluralize_place_type(place_type.capitalize(), pri_place.name))
+  column = block.columns.add()
+  # The main tile
+  tile = column.tiles.add()
+  tile.stat_var_key.append(pri_sv)
+  tile.type = subject_page_pb2.Tile.TileType.RANKING
+  _set_ranking_tile_spec(ranking_type, pri_sv, tile.ranking_tile_spec)
+  tile.title = ''.join([sv2name[pri_sv], ' in ', pri_place.name])
+
+  stat_var_spec_map = {}
+  stat_var_spec_map[pri_sv] = subject_page_pb2.StatVarSpec(stat_var=pri_sv, name=sv2name[pri_sv])
+
+      # The per capita tile
+  if _should_add_percapita(pri_sv):
+    tile = column.tiles.add()
+    sv_key = pri_sv + "_pc"
+    tile.stat_var_key.append(sv_key)
+    tile.type = subject_page_pb2.Tile.TileType.RANKING
+    _set_ranking_tile_spec(ranking_type, pri_sv, tile.ranking_tile_spec)
+    tile.title = ''.join(['Per Capita ', sv2name[pri_sv], ' in ', pri_place.name])
+    stat_var_spec_map[sv_key] = subject_page_pb2.StatVarSpec(
+      stat_var=pri_sv,
+      denom="Count_Person",
+      name=sv2name[pri_sv],
+      scaling=100,
+      unit="%")
+  return block, stat_var_spec_map
+
+
+def _place_overview_block(place: Place):
+  block = subject_page_pb2.Block()
+  block.title = place.name
+  column = block.columns.add()
+  tile = column.tiles.add()
+  tile.type = subject_page_pb2.Tile.TileType.PLACE_OVERVIEW
+  return block
+
+
+def _is_map_or_ranking_compatible(cspec: ChartSpec):
+  if len(cspec.places) > 1:
+    logging.error('Incompatible MAP/RANKING: too-many-places ', cspec)
+    return False
+  if len(cspec.svs) > 1:
+    logging.error('Incompatible MAP/RANKING: too-many-svs', cspec)
+    return False
+  if 'place_type' not in cspec.attr or not cspec.attr['place_type']:
+    logging.error('Incompatible MAP/RANKING: missing-place-type', cspec)
+    return False
+  return True
+
+
+# TODO: Move this logic to nl_data_spec_next.
 def _topic_sv_blocks(category: subject_page_pb2.Category,
                      classification_type: NLClassifier, topic_svs: List[str],
                      extended_sv_map: Dict[str,
@@ -251,7 +362,7 @@ def build_page_config(uttr: Utterance):
   # Init
   page_config = subject_page_pb2.SubjectPageConfig()
   # Set metadata
-  page_config.metadata.place_dcid.append(uttr.places[0].dcid)
+  page_config.metadata.place_dcid.append(uttr.rankedCharts[0].places[0].dcid)
   # TODO: Get from ContainedInPlace chart?
   # page_config.metadata.contained_place_types[
   #     main_place_spec.type] = contained_place_spec.contained_place_type
@@ -260,68 +371,35 @@ def build_page_config(uttr: Utterance):
   category = page_config.categories.add()
 
   # Get names of all SVs
-  all_svs = set()
-  for cspec in uttr.rankedCharts:
-    all_svs.update(cspec.svs)
-  sv2name = get_sv_name(list(all_svs))
+  sv2name = get_sv_name(uttr)
 
   for cspec in uttr.rankedCharts:
     if not cspec.places:
       continue
     block = None
     stat_var_spec_map = {}
+
     if cspec.chart_type == ChartType.PLACE_OVERVIEW:
-      block = subject_page_pb2.Block()
-      block.title = cspec.places[0].name
-      column = block.columns.add()
-      tile = column.tiles.add()
-      tile.type = subject_page_pb2.Tile.TileType.PLACE_OVERVIEW
+      block = _place_overview_block(cspec.places[0])
     elif cspec.chart_type == ChartType.TIMELINE_CHART:
       if len(cspec.svs) > 1:
         block, stat_var_spec_map = _single_place_multiple_var_timeline_block(
             cspec.svs, sv2name)
       else:
-        block, stat_var_spec_map = _single_place_single_var_timeline_block(cspec.svs[0], sv2name)
+        block, stat_var_spec_map = _single_place_single_var_timeline_block(
+            cspec.svs[0], sv2name)
     elif cspec.chart_type == ChartType.BAR_CHART:
       block, stat_var_spec_map = _multiple_place_bar_block(cspec.places, cspec.svs, sv2name)
     elif cspec.chart_type == ChartType.MAP_CHART:
-      if len(cspec.places) > 1:
-        logging.error('Bad Map chart: ', cspec)
+      if not _is_map_or_ranking_compatible(cspec):
         continue
-      if len(cspec.svs) > 1:
-        logging.error('Bad Map chart: ', cspec)
+      block, stat_var_spec_map = _map_chart_block(cspec.places[0], cspec.svs[0],
+                                                  cspec.attr['place_type'], sv2name)
+    elif cspec.chart_type == ChartType.RANKING_CHART:
+      if not _is_map_or_ranking_compatible(cspec):
         continue
-      pri_sv = cspec.svs[0]
-      pri_place = cspec.places[0]
-
-      # Query for place and sv, draw simple charts
-      # The primary stat var
-      block = subject_page_pb2.Block()
-      block.title = "{} in {}".format(
-          pluralize_place_type(
-              cspec.attr['place_type']).capitalize(), pri_place.name)
-      column = block.columns.add()
-      # The main tile
-      tile = column.tiles.add()
-      tile.stat_var_key.append(pri_sv)
-      tile.type = subject_page_pb2.Tile.TileType.MAP
-      tile.title = sv2name[pri_sv] + ' (${date})'
-
-      category.stat_var_spec[pri_sv].stat_var = pri_sv
-      category.stat_var_spec[pri_sv].name = sv2name[pri_sv]
-
-      # The per capita tile
-      if _should_add_percapita(pri_sv):
-        tile = column.tiles.add()
-        sv_key = pri_sv + "_pc"
-        tile.stat_var_key.append(sv_key)
-        tile.type = subject_page_pb2.Tile.TileType.MAP
-        tile.title = "Per Capita " + sv2name[pri_sv] + ' (${date})'
-        category.stat_var_spec[sv_key].stat_var = pri_sv 
-        category.stat_var_spec[sv_key].name = sv2name[pri_sv]
-        category.stat_var_spec[sv_key].denom = "Count_Person"
-        category.stat_var_spec[sv_key].unit = "%"
-        category.stat_var_spec[sv_key].scaling = 100
+      block, stat_var_spec_map = _ranking_chart_block(cspec.places[0], cspec.svs[0],
+                                                      cspec.attr['place_type'], sv2name)
 
     category.blocks.append(block)
     for sv_key, spec in stat_var_spec_map.items():

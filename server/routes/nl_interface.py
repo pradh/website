@@ -590,7 +590,6 @@ def page():
       not current_app.config['NL_MODEL']):
     flask.abort(404)
   return render_template('/nl_interface.html',
-                         data_api='nl/data',
                          maps_api_key=current_app.config['MAPS_API_KEY'])
 
 

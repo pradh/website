@@ -21,7 +21,7 @@ import flask
 from flask import Blueprint, current_app, render_template, escape, request
 from google.protobuf.json_format import MessageToJson, ParseDict
 from lib.nl_detection import ClassificationType, ContainedInPlaceType, Detection, NLClassifier, Place, PlaceDetection, SVDetection, SimpleClassificationAttributes
-from typing import Dict, Union
+from typing import Dict, List, Union
 import pandas as pd
 import re
 import requests
@@ -29,6 +29,7 @@ import requests
 import services.datacommons as dc
 import lib.nl_data_spec_next as nl_data_spec
 import lib.nl_page_config_next as nl_page_config
+import lib.nl_utterance as nl_utterance
 
 bp = Blueprint('nl_next', __name__, url_prefix='/nlnext')
 
@@ -358,8 +359,7 @@ def _empty_svs_score_dict():
 def _result_with_debug_info(data_dict,
                             status,
                             embeddings_build,
-                            query_detection: Detection,
-                            utterance=None):
+                            query_detection: Detection):
   """Using data_dict and query_detection, format the dictionary response."""
   svs_dict = {
       'SV': query_detection.svs_detected.sv_dcids,
@@ -397,11 +397,19 @@ def _result_with_debug_info(data_dict,
 
   # TODO: Revisit debug info
   debug_info = {
-      "debug": {
-          'status':
-              status,
-          'original_query':
-              query_detection.original_query,
+    'status': status,
+    'original_query': query_detection.original_query,
+    'sv_matching': svs_dict,
+    'svs_to_sentences': svs_to_sentences,
+    'embeddings_build': embeddings_build,
+    'ranking_classification': ranking_classification,
+    'temporal_classification': temporal_classification,
+    'contained_in_classification': contained_in_classification,
+    'clustering_classification': clustering_classification,
+    'correlation_classification': correlation_classification
+  }
+  if query_detection.places_detected:
+    debug_info.update({
           'places_detected':
               query_detection.places_detected.places_found,
           'main_place_dcid':
@@ -410,34 +418,9 @@ def _result_with_debug_info(data_dict,
               query_detection.places_detected.main_place.name,
           'query_with_places_removed':
               query_detection.places_detected.query_without_place_substr,
-          'sv_matching':
-              svs_dict,
-          'svs_to_sentences':
-              svs_to_sentences,
-          'embeddings_build':
-              embeddings_build,
-          'ranking_classification':
-              ranking_classification,
-          'temporal_classification':
-              temporal_classification,
-          'contained_in_classification':
-              contained_in_classification,
-          'clustering_classification':
-              clustering_classification,
-          'correlation_classification':
-              correlation_classification,
-          'primary_sv':
-              utterance.svs[0],
-          'primary_sv_siblings':
-              utterance.svs,
-          # 'data_spec':
-          #    utterance,
-      },
-  }
-  # Set the context which contains everything except the charts config.
-  data_dict.update(debug_info)
-  charts_config = data_dict.pop('config', {})
-  return {'context': data_dict, 'config': charts_config}
+    })
+  data_dict['debug'] = debug_info
+  return data_dict
 
 
 def _detection(orig_query, cleaned_query, embeddings_build) -> Detection:
@@ -471,6 +454,7 @@ def _detection(orig_query, cleaned_query, embeddings_build) -> Detection:
                                                       name=main_place_name,
                                                       place_type=main_place_type))
   else:
+    query = cleaned_query
     place_detection = None
 
   # Step 3: Identify the SV matched based on the query.
@@ -546,7 +530,6 @@ def page():
       not current_app.config['NL_MODEL']):
     flask.abort(404)
   return render_template('/nl_interface.html',
-                         data_api='nlnext/data',
                          maps_api_key=current_app.config['MAPS_API_KEY'])
 
 
@@ -558,14 +541,20 @@ def data():
     flask.abort(404)
   original_query = request.args.get('q')
   context_history = request.get_json().get('contextHistory', [])
-  has_context = False
-  if context_history:
-    has_context = True
   logging.info(context_history)
+
   query = str(escape(_remove_punctuations(original_query)))
   embeddings_build = str(escape(request.args.get('build', "combined_all")))
   default_place = "United States"
-  res = {'place_type': '', 'place_name': '', 'place_dcid': '', 'config': {}}
+  res = {
+    'place': {
+      'dcid': '',
+      'name': '',
+      'place_type': '',
+    },
+    'config': {},
+    'context': context_history
+  }
   if not query:
     logging.info("Query was empty")
     return _result_with_debug_info(res, "Aborted: Query was Empty.",
@@ -577,26 +566,40 @@ def data():
   query_detection = _detection(str(escape(original_query)), query,
                                embeddings_build)
 
-  # Get Data Spec
-  utterance = nl_data_spec.compute(query_detection)
-  if utterance.places:
+  # Generate new utterance.
+  prev_utterance = nl_utterance.load_utterance(context_history)
+  utterance = nl_data_spec.compute(query_detection, prev_utterance)
+
+  if utterance.rankedCharts:
     page_config_pb = nl_page_config.build_page_config(utterance)
     page_config = json.loads(MessageToJson(page_config_pb))
+    # Use the first chart's place as main place.
+    main_place = utterance.rankedCharts[0].places[0]
+  else:
+    page_config = {}
+    main_place = Place(dcid='', name='', place_type='')
 
-  d = {
-      'place_type': query_detection.places_detected.main_place.place_type,
-      'place_name': query_detection.places_detected.main_place.name,
-      'place_dcid': query_detection.places_detected.main_place.dcid,
+  context_history = nl_utterance.save_utterance(utterance)
+  logging.info(context_history)
+
+  data_dict = {
+      'place': {
+        'dcid': main_place.dcid,
+        'name': main_place.name,
+        'place_type': main_place.place_type,
+      },
       'config': page_config,
+      'context': context_history
   }
   status_str = "Successful"
-  if query_detection.places_detected.using_default_place or not utterance.svs:
+  if utterance.rankedCharts:
     status_str = ""
+  else:
+    if not utterance.places:
+      status_str += f'**No Place Found**. '
+    if not utterance.svs:
+      status_str += '**No SVs Found**.'
 
-  if not utterance.places:
-    status_str += f'**No Place Found**. '
-  elif not utterance.svs:
-    status_str += '**No SVs Found**.'
-
-  return _result_with_debug_info(d, status_str, embeddings_build,
-                                 query_detection, utterance)
+  data_dict = _result_with_debug_info(data_dict, status_str,
+                                      embeddings_build, query_detection)
+  return data_dict

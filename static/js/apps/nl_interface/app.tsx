@@ -19,15 +19,12 @@
  */
 
 import React, { useEffect, useState } from "react";
+import { isNLInterfaceNext } from "../../utils/nl_interface_utils";
 
 import { QueryResult } from "./query_result";
 import { QuerySearch } from "./query_search";
 
-interface AppPropType {
-  dataApi: string;
-}
-
-export function App(props: AppPropType): JSX.Element {
+export function App(): JSX.Element {
   const [queries, setQueries] = useState<string[]>([]);
   const [contextList, setContextList] = useState<any[]>([]);
 
@@ -48,6 +45,11 @@ export function App(props: AppPropType): JSX.Element {
   }, [queries]);
 
   function addContext(context: any, idx: number) {
+    if (isNLInterfaceNext()) {
+      // The context list is handled entirely by the server.
+      setContextList(context);
+      return;
+    }
     // Always assume we are appending context for the latest query.
     if (idx !== queries.length - 1) {
       console.error(
@@ -62,14 +64,21 @@ export function App(props: AppPropType): JSX.Element {
     setContextList(newList);
   }
 
+  function getContext(i: number) {
+    if (isNLInterfaceNext()) {
+      return contextList;
+    } else {
+      return contextList.slice(0, i);
+    }
+  }
+
   const queryResults = queries.map((q, i) => (
     <QueryResult
       key={i}
       queryIdx={i}
       query={q}
-      contextHistory={contextList.slice(0, i)}
+      contextHistory={getContext(i)}
       addContextCallback={addContext}
-      dataApi={props.dataApi}
     ></QueryResult>
   ));
 

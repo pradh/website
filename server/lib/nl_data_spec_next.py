@@ -18,28 +18,19 @@ from typing import Dict, List
 import logging
 from enum import Enum
 
-
 from lib.nl_detection import ClassificationType, Detection, NLClassifier, Place, ContainedInPlaceType, ContainedInClassificationAttributes
 from lib import nl_variable, nl_topic
-from lib.nl_utterance import Utterance, ChartOriginType, ChartSpec, ChartType
+from lib.nl_utterance import Utterance, ChartOriginType, ChartSpec, ChartType, CNTXT_LOOKBACK_LIMIT
 import services.datacommons as dc
-
-# this needs to be moved into the cookie
-gCurrentUtterance = None
 
 # We will ignore SV detections that are below this threshold
 SV_THRESHOLD = 0.5
 
-# How far back do we do
-CNTXT_LOOKBACK_LIMIT = 3
-
 # TODO: If we get the SV from context and the places are different, then old code performs
 #       comparison.
 # 
-def compute(query_detection: Detection):
-  global gCurrentUtterance
-  
-  uttr = Utterance(prev_utterance=gCurrentUtterance,
+def compute(query_detection: Detection, currentUtterance: Utterance):
+  uttr = Utterance(prev_utterance=currentUtterance,
                    query=query_detection.original_query,
                    query_type=query_detection.query_type,
                    detection=query_detection,
@@ -50,7 +41,6 @@ def compute(query_detection: Detection):
                    chartCandidates=[],
                    rankedCharts=[],
                    answerPlaces=[])
-  gCurrentUtterance = uttr
 
   if (uttr.query_type == ClassificationType.UNKNOWN):
     uttr.query_type = queryTypeFromContext(uttr)
@@ -244,4 +234,3 @@ def filterSVs (sv_list, sv_score):
       ans.append(sv_list[i])
     i = i + 1
   return ans
-

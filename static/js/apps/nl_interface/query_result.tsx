@@ -26,6 +26,7 @@ import { Container } from "reactstrap";
 import { SubjectPageMainPane } from "../../components/subject_page/main_pane";
 import { SearchResult } from "../../types/app/nl_interface_types";
 import { BUILD_OPTIONS, DebugInfo } from "./debug_info";
+import { isNLInterfaceNext } from "../../utils/nl_interface_utils";
 
 const SVG_CHART_HEIGHT = 160;
 
@@ -34,7 +35,6 @@ export interface QueryResultProps {
   queryIdx: number;
   contextHistory: any[];
   addContextCallback: (any, number) => void;
-  dataApi: string;
 }
 
 export const QueryResult = memo(function QueryResult(
@@ -61,12 +61,14 @@ export const QueryResult = memo(function QueryResult(
   }, [isLoading]);
 
   useEffect(() => {
-    fetchData(props.query, selectedBuild, props.dataApi);
+    fetchData(props.query, selectedBuild);
   }, [props.query, selectedBuild]);
 
-  function fetchData(query: string, build: string, dataApi: string): void {
+  function fetchData(query: string, build: string): void {
     setIsLoading(true);
     console.log("context:", props.query, props.contextHistory);
+    const is_nl_next = isNLInterfaceNext();
+    const dataApi = is_nl_next ? "nlnext/data" : "nl/data";
     axios
       .post(`/${dataApi}?q=${query}&build=${build}`, {
         contextHistory: props.contextHistory,
@@ -87,11 +89,22 @@ export const QueryResult = memo(function QueryResult(
         const categories = _.get(resp, ["data", "config", "categories"], []);
         _.remove(categories, (c) => _.isEmpty(c));
         if (categories.length > 0) {
+          var main_place = {};
+          if (is_nl_next) {
+            // TODO: Find alternative for this.
+            main_place = resp.data["place"];
+          } else {
+            main_place = {
+              "type": context["place_type"],
+              "name": context["place_name"],
+              "dcid": context["place_dcid"],
+            };
+          }
           setChartsData({
             place: {
-              types: [context["place_type"]],
-              name: context["place_name"],
-              dcid: context["place_dcid"],
+              dcid: main_place["dcid"],
+              name: main_place["name"],
+              types: [main_place["type"]],
             },
             config: resp.data["config"],
           });
@@ -100,8 +113,9 @@ export const QueryResult = memo(function QueryResult(
             "Sorry, we couldn't answer your question. Could you try again?"
           );
         }
-        if (context["debug"] !== undefined) {
-          setDebugData(context["debug"]);
+        const debugData = is_nl_next ? resp.data["debug"] : context["debug"];
+        if (debugData !== undefined) {
+          setDebugData(debugData);
         }
         setIsLoading(false);
       })
