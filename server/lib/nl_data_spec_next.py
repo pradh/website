@@ -26,6 +26,9 @@ import services.datacommons as dc
 # We will ignore SV detections that are below this threshold
 SV_THRESHOLD = 0.5
 
+# Number of variables to plot in a chart (largely Timeline chart)
+_MAX_VARS_PER_CHART = 5
+
 # TODO: If we get the SV from context and the places are different, then old code performs
 #       comparison.
 # 
@@ -48,9 +51,10 @@ def compute(query_detection: Detection, currentUtterance: Utterance):
   if (query_detection.places_detected):
     uttr.places.append(query_detection.places_detected.main_place)
 
+  logging.info(uttr.query_type)
 
-# each of these has its own handler. Each knows what arguments it needs and will
-# call on context routines to obtain missing arguments
+  # each of these has its own handler. Each knows what arguments it needs and will
+  # call on context routines to obtain missing arguments
   if (uttr.query_type == ClassificationType.SIMPLE):
     populateSimple(uttr)
   elif (uttr.query_type == ClassificationType.COMPARE):
@@ -88,8 +92,9 @@ def populateSimpleInt(uttr, place):
         return True
   
   # If NO SVs were found, then this is a OVERVIEW chart.
-  addOneChartToUtterance(ChartType.PLACE_OVERVIEW, uttr, [], [place], ChartOriginType.PRIMARY_CHART)
-  return False
+  logging.info('Adding PLACE_OVERVIEW chart')
+  addChartToUtterance(ChartType.PLACE_OVERVIEW, uttr, [], [place], ChartOriginType.PRIMARY_CHART)
+  return True
 
 
 # TODO: Coalesce all the SV existence calls
@@ -101,14 +106,14 @@ def addSimpleCharts (place, svs, uttr):
     for svs in expanded_svs_list:
       svs = svsExistForPlaces([place.dcid], svs)[place.dcid]
       if svs:
-        if (addOneChartToUtterance(ChartType.TIMELINE_CHART, uttr, svs, [place], ChartOriginType.PRIMARY_CHART)):
+        if (addChartToUtterance(ChartType.TIMELINE_CHART, uttr, svs, [place], ChartOriginType.PRIMARY_CHART)):
           found = True
 
   sv2extensions = nl_variable.extend_svs(svs)
   for sv, extended_svs in sv2extensions.items():
     extended_svs = svsExistForPlaces([place.dcid], extended_svs)[place.dcid]
     if extended_svs:
-      if (addOneChartToUtterance(ChartType.TIMELINE_CHART, uttr, extended_svs, [place],  ChartOriginType.SECONDARY_CHART)):
+      if (addChartToUtterance(ChartType.TIMELINE_CHART, uttr, extended_svs, [place],  ChartOriginType.SECONDARY_CHART)):
         found = True
   return found
 
@@ -133,7 +138,7 @@ def populateContainedInCb(uttr, svs, containing_place, chart_origin, place_type,
   if len(svs) > 1:
     # We don't handle peer group SVs
     return False
-  addOneChartToUtterance(ChartType.MAP_CHART, uttr, svs, [containing_place], chart_origin, place_type)
+  addChartToUtterance(ChartType.MAP_CHART, uttr, svs, [containing_place], chart_origin, place_type)
   return True
 
 
@@ -156,63 +161,63 @@ def populateRanking(uttr):
       continue
     if not ranking_classification.attributes.ranking_type:
       continue
-    ranking_type = ranking_classification.attributes.ranking_type[0]
+    ranking_types = ranking_classification.attributes.ranking_type
     for contained_classification in contained_classifications:
       if not contained_classification or not isinstance(contained_classification.attributes, ContainedInClassificationAttributes):
         continue
       place_type = contained_classification.attributes.contained_in_place_type
-      if populateCharts(uttr, populateRankingCb, fallbackRankingCb, place_type=place_type, ranking_type=ranking_type):
+      if populateCharts(uttr, populateRankingCb, fallbackRankingCb, place_type=place_type, ranking_types=ranking_types):
         return True
 
   # Fallback
-  ranking_type = RankingType.HIGH
+  ranking_types = [RankingType.HIGH]
   place_type = ContainedInPlaceType.COUNTY
-  return populateCharts(uttr, populateRankingCb, fallbackRankingCb, place_type=place_type, ranking_type=ranking_type)
+  return populateCharts(uttr, populateRankingCb, fallbackRankingCb, place_type=place_type, ranking_types=ranking_types)
 
 
-def populateRankingCb(uttr, svs, containing_place, chart_origin, place_type, ranking_type):
-  if not place_type or not ranking_type:
+def populateRankingCb(uttr, svs, containing_place, chart_origin, place_type, ranking_types):
+  if not place_type or not ranking_types:
     return False
 
   if len(svs) > 1:
     # We don't handle peer group SVs
     return False
-  addOneChartToUtterance(ChartType.RANKING_CHART, uttr, svs, [containing_place], chart_origin, place_type, ranking_type)
+  addChartToUtterance(ChartType.RANKING_CHART, uttr, svs, [containing_place], chart_origin, place_type, ranking_types)
   return True
 
 
-def fallbackRankingCb(uttr, containing_place, chart_origin, place_type, ranking_type):
+def fallbackRankingCb(uttr, containing_place, chart_origin, place_type, ranking_types):
   # TODO: Poor choice, do better.
   sv = "Count_Person"
-  return populateRankingCb(uttr, [sv], containing_place, chart_origin, place_type, ranking_type)
+  return populateRankingCb(uttr, [sv], containing_place, chart_origin, place_type, ranking_types)
 
 
 # Generic processors that invoke above callbacks
 
-def populateCharts(uttr, main_cb, fallback_cb, place_type=None, ranking_type=None):
+def populateCharts(uttr, main_cb, fallback_cb, place_type=None, ranking_types=[]):
   for pl in uttr.places:
-    if (populateChartsForPlace(uttr, pl, main_cb, fallback_cb, place_type, ranking_type)):
+    if (populateChartsForPlace(uttr, pl, main_cb, fallback_cb, place_type, ranking_types)):
         return True
   for pl in placesFromContext(uttr):
-    if (populateChartsForPlace(uttr, pl, main_cb, fallback_cb, place_type, ranking_type)):
+    if (populateChartsForPlace(uttr, pl, main_cb, fallback_cb, place_type, ranking_types)):
         return True
   return False
 
 
-def populateChartsForPlace(uttr, place, main_cb, fallback_cb, place_type, ranking_type):
+def populateChartsForPlace(uttr, place, main_cb, fallback_cb, place_type, ranking_types):
   if (len(uttr.svs) > 0):
-    foundCharts = addCharts(place, uttr.svs, uttr, main_cb, place_type, ranking_type)
+    foundCharts = addCharts(place, uttr.svs, uttr, main_cb, place_type, ranking_types)
     if foundCharts:
       return True
   for svs in svsFromContext(uttr):
-    foundCharts = addCharts(place, svs, uttr, main_cb, place_type, ranking_type)
+    foundCharts = addCharts(place, svs, uttr, main_cb, place_type, ranking_types)
     if foundCharts:
         return True
-  return fallback_cb(uttr, place, ChartOriginType.PRIMARY_CHART, place_type, ranking_type)
+  return fallback_cb(uttr, place, ChartOriginType.PRIMARY_CHART, place_type, ranking_types)
 
 
 # TODO: Do existence check for child places
-def addCharts(place, svs, uttr, callback, place_type, ranking_type):
+def addCharts(place, svs, uttr, callback, place_type, ranking_types):
   print("Add chart %s %s" % (place.name, svs))
 
   # If there is a child place_type, use a child place sample.
@@ -226,14 +231,14 @@ def addCharts(place, svs, uttr, callback, place_type, ranking_type):
     for svs in expanded_svs_list:
       svs = svsExistForPlaces([place_to_check], svs)[place_to_check]
       if svs:
-        if callback(uttr, svs, place, ChartOriginType.PRIMARY_CHART, place_type, ranking_type):
+        if callback(uttr, svs, place, ChartOriginType.PRIMARY_CHART, place_type, ranking_types):
           found = True
 
   sv2extensions = nl_variable.extend_svs(svs)
   for sv, extended_svs in sv2extensions.items():
     extended_svs = svsExistForPlaces([place_to_check], extended_svs)[place_to_check]
     if extended_svs:
-      if callback(uttr, extended_svs, place, ChartOriginType.SECONDARY_CHART, place_type, ranking_type):
+      if callback(uttr, extended_svs, place, ChartOriginType.SECONDARY_CHART, place_type, ranking_types):
         found = True
   return found
 
@@ -352,15 +357,28 @@ def isSV(sv):
   return not (isTopic(sv) or isSVG(sv))
 
 
-def addOneChartToUtterance(chart_type, utterance, svs, places, primary_vs_secondary, place_type=None, ranking_type=None):
+def addChartToUtterance(chart_type, utterance, svs, places, primary_vs_secondary, place_type=None, ranking_types=[]):
   if place_type:
     place_type = place_type.value
-  ch = ChartSpec(chart_type=chart_type,
-                 svs=svs,
-                 places=places,
-                 utterance=utterance,
-                 attr={"class" : primary_vs_secondary, "place_type" : place_type, "ranking_type": ranking_type})
-  utterance.chartCandidates.append(ch)
+
+  attr = {"class" : primary_vs_secondary, "place_type" : place_type, "ranking_types": ranking_types}
+  if len(svs) < 2:
+    ch = ChartSpec(chart_type=chart_type, svs=svs, places=places, utterance=utterance, attr=attr)
+    utterance.chartCandidates.append(ch)
+    return True
+
+  assert chart_type == ChartType.TIMELINE_CHART  # This is now only supported in time-line
+
+  start_index = 0
+  while start_index < len(svs):
+    l = min(len(svs) - start_index, _MAX_VARS_PER_CHART)
+    ch = ChartSpec(chart_type=chart_type,
+                   svs=svs[start_index:start_index+l],
+                   places=places,
+                   utterance=utterance,
+                   attr=attr)
+    start_index += l
+    utterance.chartCandidates.append(ch)
   return True
 
 

@@ -136,7 +136,8 @@ def _single_place_single_var_timeline_block(sv_dcid, sv2name):
 
 def _single_place_multiple_var_timeline_block(svs, sv2name):
   """A column with two chart, all stat vars and per capita"""
-  block = subject_page_pb2.Block(columns=[subject_page_pb2.Block.Column()])
+  block = subject_page_pb2.Block(title="Compare with Other Variables",
+                                 columns=[subject_page_pb2.Block.Column()])
   stat_var_spec_map = {}
 
   # Line chart for the stat var
@@ -235,28 +236,28 @@ def _map_chart_block(pri_place: Place, pri_sv: str, place_type: str, sv2name):
   return block, stat_var_spec_map
 
 
-def _set_ranking_tile_spec(ranking_type: RankingType, pri_sv: str, ranking_tile_spec: subject_page_pb2.RankingTileSpec):
+def _set_ranking_tile_spec(ranking_types: List[RankingType], pri_sv: str, ranking_tile_spec: subject_page_pb2.RankingTileSpec):
   ranking_tile_spec.ranking_count = 10
   if "CriminalActivities" in pri_sv:
     # first check if "best" or "worst"
-    if ranking_type == RankingType.BEST:
+    if RankingType.BEST in ranking_types:
       ranking_tile_spec.show_lowest = True
-    elif ranking_type == RankingType.WORST:
+    elif RankingType.WORST in ranking_types:
       ranking_tile_spec.show_highest = True
     else:
       # otherwise, render normally
-      if ranking_type == RankingType.HIGH:
+      if RankingType.HIGH in ranking_types:
         ranking_tile_spec.show_highest = True
-      if ranking_type == RankingType.LOW:
+      if RankingType.LOW in ranking_types:
         ranking_tile_spec.show_lowest = True
   else:
-    if ranking_type == RankingType.HIGH:
+    if RankingType.HIGH in ranking_types:
       ranking_tile_spec.show_highest = True
-    if ranking_type == RankingType.LOW:
+    elif RankingType.LOW in ranking_types:
       ranking_tile_spec.show_lowest = True
 
 
-def _ranking_chart_block(pri_place: Place, pri_sv: str, place_type: str, ranking_type: RankingType, sv2name):
+def _ranking_chart_block(pri_place: Place, pri_sv: str, place_type: str, ranking_types: List[RankingType], sv2name):
   block = subject_page_pb2.Block()
   block.title = "{} in {}".format(
       pluralize_place_type(place_type.capitalize()), pri_place.name)
@@ -265,7 +266,7 @@ def _ranking_chart_block(pri_place: Place, pri_sv: str, place_type: str, ranking
   tile = column.tiles.add()
   tile.stat_var_key.append(pri_sv)
   tile.type = subject_page_pb2.Tile.TileType.RANKING
-  _set_ranking_tile_spec(ranking_type, pri_sv, tile.ranking_tile_spec)
+  _set_ranking_tile_spec(ranking_types, pri_sv, tile.ranking_tile_spec)
   tile.title = ''.join([sv2name[pri_sv], ' in ', pri_place.name])
 
   stat_var_spec_map = {}
@@ -277,7 +278,7 @@ def _ranking_chart_block(pri_place: Place, pri_sv: str, place_type: str, ranking
     sv_key = pri_sv + "_pc"
     tile.stat_var_key.append(sv_key)
     tile.type = subject_page_pb2.Tile.TileType.RANKING
-    _set_ranking_tile_spec(ranking_type, pri_sv, tile.ranking_tile_spec)
+    _set_ranking_tile_spec(ranking_types, pri_sv, tile.ranking_tile_spec)
     tile.title = ''.join(['Per Capita ', sv2name[pri_sv], ' in ', pri_place.name])
     stat_var_spec_map[sv_key] = subject_page_pb2.StatVarSpec(
       stat_var=pri_sv,
@@ -308,54 +309,6 @@ def _is_map_or_ranking_compatible(cspec: ChartSpec):
     logging.error('Incompatible MAP/RANKING: missing-place-type', cspec)
     return False
   return True
-
-
-# TODO: Move this logic to nl_data_spec_next.
-def _topic_sv_blocks(category: subject_page_pb2.Category,
-                     classification_type: NLClassifier, topic_svs: List[str],
-                     extended_sv_map: Dict[str,
-                                           List[str]], sv2name, sv_exists_list):
-  """Fill in category if there is a topic."""
-  main_block = category.blocks.add()
-  column = main_block.columns.add()
-  for sv in topic_svs:
-    if 'dc/svpg/' in sv:
-      sub_svs = extended_sv_map[sv]
-      if not sub_svs:
-        continue
-      sub_svs_exist = list(filter(lambda x: x in sv_exists_list, sub_svs))
-      if not sub_svs_exist:
-        continue
-      # add a block for each peer group
-      block = category.blocks.add()
-      column = block.columns.add()
-      for i, sub_sv in enumerate(sub_svs_exist):
-        if classification_type == ClassificationType.CONTAINED_IN:
-          # always maps for contained_in
-          tile = column.tiles.add()
-          tile.type = subject_page_pb2.Tile.TileType.MAP
-          tile.title = nl_topic.svpg_name(sv)
-        else:
-          # split up into several line charts
-          if i % 5 == 0:
-            tile = column.tiles.add()
-            tile.type = subject_page_pb2.Tile.TileType.LINE
-            tile.title = nl_topic.svpg_name(sv)
-        tile.stat_var_key.append(sub_sv)
-        category.stat_var_spec[sub_sv].stat_var = sub_sv
-        category.stat_var_spec[sub_sv].name = sv2name[sub_sv]
-    elif sv in sv_exists_list:
-      # add to main line chart
-      tile = column.tiles.add()
-      if classification_type == ClassificationType.CONTAINED_IN:
-        # always maps for contained_in
-        tile.type = subject_page_pb2.Tile.TileType.MAP
-      else:
-        tile.type = subject_page_pb2.Tile.TileType.LINE
-      tile.title = sv2name[sv]
-      tile.stat_var_key.append(sv)
-      category.stat_var_spec[sv].stat_var = sv
-      category.stat_var_spec[sv].name = sv2name[sv]
 
 
 def build_page_config(uttr: Utterance):
@@ -401,7 +354,7 @@ def build_page_config(uttr: Utterance):
         continue
       block, stat_var_spec_map = _ranking_chart_block(cspec.places[0], cspec.svs[0],
                                                       cspec.attr['place_type'],
-                                                      cspec.attr['ranking_type'],
+                                                      cspec.attr['ranking_types'],
                                                       sv2name)
 
     category.blocks.append(block)

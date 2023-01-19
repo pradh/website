@@ -110,7 +110,8 @@ def _load_classifications(classifications_dict: List[Dict]) -> List[NLClassifier
           contained_in_place_type=cdict['contained_in_place_type'])
     elif 'ranking_type' in cdict:
       attributes = RankingClassificationAttributes(
-          ranking_type=cdict['ranking_type'])
+          ranking_type=cdict['ranking_type'],
+          ranking_trigger_words=[])
     classifications.append(NLClassifier(
       type=cdict['type'],
       attributes=attributes

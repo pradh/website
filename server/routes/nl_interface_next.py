@@ -395,7 +395,8 @@ def _result_with_debug_info(data_dict,
       clustering_classification += f"Cluster # 0: {str(classification.attributes.cluster_1_svs)}. "
       clustering_classification += f"Cluster # 1: {str(classification.attributes.cluster_2_svs)}."
 
-  # TODO: Revisit debug info
+  # TODO: Revisit debug info to add places and variables in context
+  # TODO: Add SVs that were actually used
   debug_info = {
     'status': status,
     'original_query': query_detection.original_query,
@@ -418,6 +419,13 @@ def _result_with_debug_info(data_dict,
               query_detection.places_detected.main_place.name,
           'query_with_places_removed':
               query_detection.places_detected.query_without_place_substr,
+    })
+  else:
+    debug_info.update({
+          'places_detected': ["<None>"],
+          'main_place_dcid': "<None>",
+          'main_place_name': "<None>",
+          'query_with_places_removed': query_detection.original_query,
     })
   data_dict['debug'] = debug_info
   return data_dict
