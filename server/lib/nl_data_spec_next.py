@@ -13,7 +13,7 @@
 # limitations under the License.
 """Module for NL page data spec"""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List
 import logging
 from enum import Enum
@@ -67,55 +67,30 @@ def compute(query_detection: Detection, currentUtterance: Utterance):
   rankCharts(uttr)
   return uttr
 
+@dataclass
+class PopulateState:
+  uttr: Utterance
+  main_cb: any
+  fallback_cb: any
+  place_type: ContainedInPlaceType = None
+  ranking_types: List[RankingType] = field(default_factory=list)
+  block_id: int = 0
 
 # Handler for simple charts  
-# TODO: Change this to use generic handlers
 
 def populateSimple(uttr):
-  for pl in uttr.places:
-    if (populateSimpleInt(uttr, pl)):
-        return
-        
-  for pl in placesFromContext(uttr):
-    if (populateSimpleInt(uttr, pl)):
-        return
+  return populateCharts(PopulateState(uttr=uttr,
+                                      main_cb=populateSimpleCb,
+                                      fallback_cb=fallbackSimpleCb))
 
-
-def populateSimpleInt(uttr, place):
-  if (len(uttr.svs) > 0):
-    foundCharts = addSimpleCharts(place, uttr.svs, uttr)
-    if (foundCharts):
-      return True
-  for svs in svsFromContext(uttr):
-    foundCharts = addSimpleCharts(place, svs, uttr)
-    if (foundCharts):
-        return True
+def populateSimpleCb(state, chart_vars, place, chart_origin):
+  return addChartToUtterance(ChartType.TIMELINE_CHART, state, chart_vars, [place], chart_origin)
   
+def fallbackSimpleCb(state, place, chart_origin):
   # If NO SVs were found, then this is a OVERVIEW chart.
-  logging.info('Adding PLACE_OVERVIEW chart')
-  addChartToUtterance(ChartType.PLACE_OVERVIEW, uttr, [], [place], ChartOriginType.PRIMARY_CHART)
-  return True
-
-
-# TODO: Coalesce all the SV existence calls
-def addSimpleCharts (place, svs, uttr):
-  print("Add line chart %s %s" % (place.name, svs))
-  found = False
-  for rank, sv in enumerate(svs):
-    expanded_svs_list = svgOrTopicToSVs(sv, rank) 
-    for svs in expanded_svs_list:
-      svs = svsExistForPlaces([place.dcid], svs)[place.dcid]
-      if svs:
-        if (addChartToUtterance(ChartType.TIMELINE_CHART, uttr, svs, [place], ChartOriginType.PRIMARY_CHART)):
-          found = True
-
-  sv2extensions = nl_variable.extend_svs(svs)
-  for sv, extended_svs in sv2extensions.items():
-    extended_svs = svsExistForPlaces([place.dcid], extended_svs)[place.dcid]
-    if extended_svs:
-      if (addChartToUtterance(ChartType.TIMELINE_CHART, uttr, extended_svs, [place],  ChartOriginType.SECONDARY_CHART)):
-        found = True
-  return found
+  state.block_id += 1
+  chart_vars = ChartVars(svs=[], block_id=state.block_id, include_percapita=False)
+  return addChartToUtterance(ChartType.PLACE_OVERVIEW, state, chart_vars, [place], chart_origin)
 
 
 # Handlers for containedInPlace 
@@ -126,26 +101,36 @@ def populateContainedIn(uttr):
     if not classification or not isinstance(classification.attributes, ContainedInClassificationAttributes):
       continue
     place_type = classification.attributes.contained_in_place_type
-    if populateCharts(uttr, populateContainedInCb, fallbackContainedInCb, place_type=place_type):
+    if populateCharts(PopulateState(uttr=uttr,
+                                    main_cb=populateContainedInCb,
+                                    fallback_cb=fallbackContainedInCb,
+                                    place_type=place_type)):
       return True
   place_type = ContainedInPlaceType.COUNTY  # poor default. should do this based on main place
-  return populateCharts(uttr, populateContainedInCb, fallbackContainedInCb, place_type=place_type)
+  return populateCharts(PopulateState(uttr=uttr,
+                                      main_cb=populateContainedInCb,
+                                      fallback_cb=fallbackContainedInCb,
+                                      place_type=place_type))
 
 
-def populateContainedInCb(uttr, svs, containing_place, chart_origin, place_type, _):
-  if not place_type:
+def populateContainedInCb(state, chart_vars, containing_place, chart_origin):
+  if not state.place_type:
     return False
-  if len(svs) > 1:
+  if not chart_vars:
+    return False
+  if len(chart_vars.svs) > 1:
     # We don't handle peer group SVs
     return False
-  addChartToUtterance(ChartType.MAP_CHART, uttr, svs, [containing_place], chart_origin, place_type)
+  addChartToUtterance(ChartType.MAP_CHART, state, chart_vars, [containing_place], chart_origin)
   return True
 
 
-def fallbackContainedInCb(uttr, containing_place, chart_origin, place_type, _):
+def fallbackContainedInCb(state, containing_place, chart_origin):
   # TODO: Poor choice, do better.
   sv = "Count_Person"
-  return populateContainedInCb(uttr, [sv], containing_place, chart_origin, place_type, _)
+  state.block_id += 1
+  chart_vars = ChartVars(svs=[sv], block_id=state.block_id)
+  return populateContainedInCb(state, containing_place, chart_origin)
 
 
 # Handlers for Ranking
@@ -166,79 +151,92 @@ def populateRanking(uttr):
       if not contained_classification or not isinstance(contained_classification.attributes, ContainedInClassificationAttributes):
         continue
       place_type = contained_classification.attributes.contained_in_place_type
-      if populateCharts(uttr, populateRankingCb, fallbackRankingCb, place_type=place_type, ranking_types=ranking_types):
+      if populateCharts(PopulateState(uttr=uttr,
+                                      main_cb=populateRankingCb,
+                                      fallback_cb=fallbackRankingCb,
+                                      place_type=place_type,
+                                      ranking_types=ranking_types)):
         return True
 
   # Fallback
   ranking_types = [RankingType.HIGH]
   place_type = ContainedInPlaceType.COUNTY
-  return populateCharts(uttr, populateRankingCb, fallbackRankingCb, place_type=place_type, ranking_types=ranking_types)
+  return populateCharts(PopulateState(uttr=uttr,
+                                      main_cb=populateRankingCb,
+                                      fallback_cb=fallbackRankingCb,
+                                      place_type=place_type,
+                                      ranking_types=ranking_types))
 
 
-def populateRankingCb(uttr, svs, containing_place, chart_origin, place_type, ranking_types):
-  if not place_type or not ranking_types:
+def populateRankingCb(state, chart_vars, containing_place, chart_origin):
+  if not state.place_type or not state.ranking_types:
     return False
 
-  if len(svs) > 1:
+  if len(chart_vars.svs) > 1:
     # We don't handle peer group SVs
     return False
-  addChartToUtterance(ChartType.RANKING_CHART, uttr, svs, [containing_place], chart_origin, place_type, ranking_types)
+  addChartToUtterance(ChartType.RANKING_CHART, state, chart_vars, [containing_place], chart_origin)
   return True
 
 
-def fallbackRankingCb(uttr, containing_place, chart_origin, place_type, ranking_types):
+def fallbackRankingCb(state, containing_place, chart_origin):
   # TODO: Poor choice, do better.
   sv = "Count_Person"
-  return populateRankingCb(uttr, [sv], containing_place, chart_origin, place_type, ranking_types)
+  state.block_id += 1
+  chart_vars = ChartVars(svs=[sv], block_id=state.block_id)
+  return populateRankingCb(state, chart_vars, containing_place, chart_origin)
 
 
 # Generic processors that invoke above callbacks
 
-def populateCharts(uttr, main_cb, fallback_cb, place_type=None, ranking_types=[]):
-  for pl in uttr.places:
-    if (populateChartsForPlace(uttr, pl, main_cb, fallback_cb, place_type, ranking_types)):
+def populateCharts(state: PopulateState) -> bool:
+  for pl in state.uttr.places:
+    if (populateChartsForPlace(state, pl)):
         return True
-  for pl in placesFromContext(uttr):
-    if (populateChartsForPlace(uttr, pl, main_cb, fallback_cb, place_type, ranking_types)):
+  for pl in placesFromContext(state.uttr):
+    if (populateChartsForPlace(state, pl)):
         return True
   return False
 
 
-def populateChartsForPlace(uttr, place, main_cb, fallback_cb, place_type, ranking_types):
-  if (len(uttr.svs) > 0):
-    foundCharts = addCharts(place, uttr.svs, uttr, main_cb, place_type, ranking_types)
+def populateChartsForPlace(state: PopulateState, place: str) -> bool:
+  if (len(state.uttr.svs) > 0):
+    foundCharts = addCharts(state, place, state.uttr.svs)
     if foundCharts:
       return True
-  for svs in svsFromContext(uttr):
-    foundCharts = addCharts(place, svs, uttr, main_cb, place_type, ranking_types)
+  for svs in svsFromContext(state.uttr):
+    foundCharts = addCharts(state, place, svs)
     if foundCharts:
         return True
-  return fallback_cb(uttr, place, ChartOriginType.PRIMARY_CHART, place_type, ranking_types)
+  return state.fallback_cb(state, place, ChartOriginType.PRIMARY_CHART)
 
 
-# TODO: Do existence check for child places
-def addCharts(place, svs, uttr, callback, place_type, ranking_types):
+# TODO: Batch existence check calls
+def addCharts(state: PopulateState, place: str, svs: List[str]) -> bool:
   print("Add chart %s %s" % (place.name, svs))
 
   # If there is a child place_type, use a child place sample.
   place_to_check = place.dcid
-  if place_type:
-    place_to_check = _sample_child_place(place.dcid, place_type)
+  if state.place_type:
+    place_to_check = _sample_child_place(place.dcid, state.place_type)
 
   found = False
   for rank, sv in enumerate(svs):
-    expanded_svs_list = svgOrTopicToSVs(sv, rank) 
-    for svs in expanded_svs_list:
-      svs = svsExistForPlaces([place_to_check], svs)[place_to_check]
+    chart_vars_list = svgOrTopicToSVs(state, sv, rank) 
+    for chart_vars in chart_vars_list:
+      svs = svsExistForPlaces([place_to_check], chart_vars.svs)[place_to_check]
       if svs:
-        if callback(uttr, svs, place, ChartOriginType.PRIMARY_CHART, place_type, ranking_types):
+        chart_vars.svs = svs
+        if state.main_cb(state, chart_vars, place, ChartOriginType.PRIMARY_CHART):
           found = True
 
   sv2extensions = nl_variable.extend_svs(svs)
   for sv, extended_svs in sv2extensions.items():
     extended_svs = svsExistForPlaces([place_to_check], extended_svs)[place_to_check]
     if extended_svs:
-      if callback(uttr, extended_svs, place, ChartOriginType.SECONDARY_CHART, place_type, ranking_types):
+      state.block_id += 1
+      chart_vars = ChartVars(svs=extended_svs, block_id=state.block_id)
+      if state.main_cb(state, chart_vars, place, ChartOriginType.SECONDARY_CHART):
         found = True
   return found
 
@@ -294,24 +292,46 @@ def classificationsOfTypeFromContext(uttr, ctype):
   return result
 
 
-# Returns a list of lists.  Inner list may contain a single SV or a peer-group of SVs.
-def svgOrTopicToSVs(sv, rank):
+# Struct for configuring the vars that go into a chart.
+@dataclass
+class ChartVars:
+  svs: List[str]
+  block_id: int
+  include_percapita: bool = True
+  title: str = ""
+
+# Returns a list of ChartVars.  Inner list may contain a single SV or a peer-group of SVs.
+def svgOrTopicToSVs(state: PopulateState, sv: str, rank: int) -> List[ChartVars]:
   if isSV(sv):
-    return [[sv]]
+    state.block_id += 1
+    return [ChartVars(svs=[sv], block_id=state.block_id)]
   if isTopic(sv):
     topic_vars = nl_topic.get_topic_vars(sv, rank)
     peer_groups = nl_topic.get_topic_peers(topic_vars)
-    res = []
+    just_svs = []
+    svpgs = []
     for v in topic_vars:
       if v in peer_groups and peer_groups[v]:
-        res.append(peer_groups[v])
+        title = nl_topic.svpg_name(v)
+        svpgs.append((title, peer_groups[v]))
       else:
-        res.append([v])
-    return res
+        just_svs.append(v)
+    # Make a block with one chart per SV in just_svs
+    state.block_id += 1
+    charts = []
+    for v in just_svs:
+      # Skip PC for this case.
+      charts.append(ChartVars(svs=[v], block_id=state.block_id, include_percapita=False))
+    # Next, make one block per peer-group
+    for (title, svpg) in svpgs:
+      state.block_id += 1
+      charts.append(ChartVars(svs=svpg, block_id=state.block_id, include_percapita=False, title=title))
+    return charts
   if isSVG(sv):
     svg2sv = nl_variable.expand_svg(sv)
     if sv in svg2sv:
-      return svg2sv[sv]
+      state.block_id += 1
+      return [ChartVars(svs=svg2sv[sv], block_id=state.block_id)]
   return []
           
       
@@ -357,28 +377,36 @@ def isSV(sv):
   return not (isTopic(sv) or isSVG(sv))
 
 
-def addChartToUtterance(chart_type, utterance, svs, places, primary_vs_secondary, place_type=None, ranking_types=[]):
-  if place_type:
-    place_type = place_type.value
+def addChartToUtterance(chart_type, state, chart_vars, places, primary_vs_secondary):
+  if state.place_type and isinstance(state.place_type, ContainedInPlaceType):
+    # TODO: What's the flow where the instance is string?
+    state.place_type = state.place_type.value
 
-  attr = {"class" : primary_vs_secondary, "place_type" : place_type, "ranking_types": ranking_types}
-  if len(svs) < 2:
-    ch = ChartSpec(chart_type=chart_type, svs=svs, places=places, utterance=utterance, attr=attr)
-    utterance.chartCandidates.append(ch)
+  attr = {
+    "class" : primary_vs_secondary,
+    "place_type" : state.place_type,
+    "ranking_types": state.ranking_types,
+    "block_id": chart_vars.block_id,
+    "include_percapita": chart_vars.include_percapita,
+    "title": chart_vars.title,
+  }
+  if len(chart_vars.svs) < 2:
+    ch = ChartSpec(chart_type=chart_type, svs=chart_vars.svs, places=places, utterance=state.uttr, attr=attr)
+    state.uttr.chartCandidates.append(ch)
     return True
 
   assert chart_type == ChartType.TIMELINE_CHART  # This is now only supported in time-line
 
   start_index = 0
-  while start_index < len(svs):
-    l = min(len(svs) - start_index, _MAX_VARS_PER_CHART)
+  while start_index < len(chart_vars.svs):
+    l = min(len(chart_vars.svs) - start_index, _MAX_VARS_PER_CHART)
     ch = ChartSpec(chart_type=chart_type,
-                   svs=svs[start_index:start_index+l],
+                   svs=chart_vars.svs[start_index:start_index+l],
                    places=places,
-                   utterance=utterance,
+                   utterance=state.uttr,
                    attr=attr)
     start_index += l
-    utterance.chartCandidates.append(ch)
+    state.uttr.chartCandidates.append(ch)
   return True
 
 
