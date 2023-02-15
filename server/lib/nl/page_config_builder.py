@@ -29,7 +29,7 @@ from server.lib.nl.detection import RankingType
 from server.lib.nl.utterance import ChartOriginType
 from server.lib.nl.utterance import ChartSpec
 from server.lib.nl.utterance import ChartType
-from server.lib.nl.utterance import ClassificationType
+from server.lib.nl.utterance import QueryType
 from server.lib.nl.utterance import Utterance
 
 
@@ -55,7 +55,7 @@ class PageConfigBuilder:
     self.prev_block_id = -1
 
     self.ignore_block_id_check = False
-    if (uttr.query_type == ClassificationType.RANKING and
+    if (uttr.query_types[-1] == QueryType.RANKING_ACROSS_PLACES and
         utils.get_contained_in_type(uttr)):
       self.ignore_block_id_check = True
 

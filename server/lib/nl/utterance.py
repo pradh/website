@@ -103,16 +103,16 @@ class Utterance:
   query: str
   # Result of classification
   detection: Detection
-  # A characterization of the query.
-  query_type: ClassificationType
+  # A list of fulfilled characterizations of the query.
+  query_types: List[QueryType]
   # Primary places
   places: List[Place]
   # Primary variables
   svs: List[str]
   # List of detected classifications
   classifications: List[NLClassifier]
-  # Computed chart candidates.
-  chartCandidates: List[ChartSpec]
+  # Computed chart candidates from each fulfillment.
+  chartCandidates: Dict[QueryType, List[ChartSpec]]
   # Final ranked charts from which Chart Config proto is generated.
   rankedCharts: List[ChartSpec]
   # This is a list of places in the answer
@@ -239,7 +239,7 @@ def save_utterance(uttr: Utterance) -> List[Dict]:
   while u and cnt < CTX_LOOKBACK_LIMIT:
     udict = {}
     udict['query'] = u.query
-    udict['query_type'] = u.query_type
+    udict['query_types'] = u.query_types
     udict['svs'] = u.svs
     udict['places'] = _place_to_dict(u.places)
     udict['classifications'] = _classification_to_dict(u.classifications)
@@ -263,14 +263,14 @@ def load_utterance(uttr_dicts: List[Dict]) -> Utterance:
     udict = uttr_dicts[len(uttr_dicts) - 1 - i]
     uttr = Utterance(prev_utterance=prev_uttr,
                      query=udict['query'],
-                     query_type=ClassificationType(udict['query_type']),
+                     query_types=[QueryType(q) for q in udict['query_types']],
                      svs=udict['svs'],
                      places=_dict_to_place(udict['places']),
                      classifications=_dict_to_classification(
                          udict['classifications']),
                      rankedCharts=_dict_to_chart_spec(udict['ranked_charts']),
                      detection=None,
-                     chartCandidates=None,
+                     chartCandidates={},
                      answerPlaces=None)
     prev_uttr = uttr
   return uttr

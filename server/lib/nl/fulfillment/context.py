@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from dataclasses import dataclass
 from typing import List
 
 from server.lib.nl.detection import ClassificationAttributes
@@ -25,6 +26,23 @@ from server.lib.nl.utterance import Utterance
 # TODO: convert all implementations to consistently loop from passed `uttr`
 #       instead of `uttr.prev_utterance`
 #
+
+
+@dataclass
+class SVsAndPlaces:
+  svs: List[str]
+  places: List[Place]
+
+
+def get_all_svs_and_places(uttr: Utterance) -> List[SVsAndPlaces]:
+  prev_uttr_count = 0
+  ans = [SVsAndPlaces(svs=uttr.svs, places=uttr.places)]
+  prev = uttr.prev_utterance
+  while (prev and prev_uttr_count < CTX_LOOKBACK_LIMIT):
+    ans.append(SVsAndPlaces(svs=prev.svs, places=prev.places))
+    prev = prev.prev_utterance
+    prev_uttr_count = prev_uttr_count + 1
+  return ans
 
 
 def svs_from_context(uttr: Utterance) -> List[str]:

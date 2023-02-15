@@ -94,7 +94,8 @@ def add_chart_to_utterance(chart_type: ChartType, state: PopulateState,
                  places=places,
                  utterance=state.uttr,
                  attr=attr)
-  state.uttr.chartCandidates.append(ch)
+  qtype = state.uttr.query_types[-1]
+  state.uttr.chartCandidates[qtype].append(ch)
   utils.update_counter(state.uttr.counters, 'num_chart_candidates', 1)
   return True
 
