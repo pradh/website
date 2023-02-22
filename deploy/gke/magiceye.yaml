@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project: datcom-mixer-encode
-ip: 34.107.228.109
-domain: stanford-demo.alex-datacommons.dev
+project: datcom-magiceye-dev
+ip:
+domain:
 region:
   primary: us-central1
   others:
     -
+cluster_prefix: mixer
 nodes: 1
 storage_project: datcom-store

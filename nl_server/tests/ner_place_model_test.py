@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for NERPlaces (in nl_ner_place_model.py)."""
 
+import re
 import unittest
 
 from diskcache import Cache
@@ -21,6 +22,13 @@ from parameterized import parameterized
 from nl_server.loader import nl_cache_path
 from nl_server.loader import nl_ner_cache_key
 from nl_server.ner_place_model import NERPlaces
+import server.lib.nl.utils as nl_utils
+
+
+def _remove_punctuations(s):
+  s = s.replace('\'s', '')
+  s = re.sub(r'[^\w\s]', ' ', s)
+  return " ".join(s.split())
 
 
 class TestNERPlaces(unittest.TestCase):
@@ -41,22 +49,87 @@ class TestNERPlaces(unittest.TestCase):
 
   @parameterized.expand([
       # All these queries should detect places.
+      # Starting with several special cases (continents, US etc).
+      ["GDP of Africa", ["africa"]],
+      ["median income in africa", ["africa"]],
+      ["GDP of countries in asia", ["asia"]],
+      ["economy of Asia", ["asia"]],
+      ["poverty in oceania", ["oceania"]],
+      ["travel in south america", ["south america"]],
+      ["income in latin america", ["latin america"]],
+      ["population of north america", ["north america"]],
+      ["climate change in north america cities", [
+          "north america",
+      ]],
       ["tell me about chicago", ["chicago"]],
       ["what about new delhi", ["new delhi"]],
-      ["California economy and Florida", ["california", "florida"]],
+      ["gdp of USA", ["usa"]],
+      ["america's gnp", ["america"]],
+      ["poverty in the us", ["us"]],
+      [
+          "states with the best places to live in the united states",
+          ["united states"]
+      ],
+      ["tell me about palo alto", ["palo alto"]],
+      ["what about mountain view", ["mountain view"]],
+      # Bay Area special cases.
+      [
+          "cities with the highest african american population in the sf bay area",
+          ["sf bay area"]
+      ],
+      [
+          "cities with asian american population in the san francisco bay area",
+          ["san francisco bay area"]
+      ],
+      ["cities with people in the SF peninsula", ["sf peninsula"]],
+      ["crime in the SF east bay", ["sf east bay"]],
+      [
+          "SF east bay's and California's population",
+          ["sf east bay", "california"]
+      ],
+      [
+          "Asian population in the SF north bay and in California and in Asia",
+          ["sf north bay", "california", "asia"]
+      ],
+      # Order of detection matters.
       [
           "the place to live is Singapore or Hong Kong",
           ["singapore", "hong kong"]
       ],
+      [
+          "cambridge's economy and Berkeley's",
+          ["cambridge", "berkeley"],
+      ],
+      ["California economy and Florida", ["california", "florida"]],
       ["life expectancy in Australia and Canada", ["australia", "canada"]],
       [
           "why is it always raining in seattle and in London",
           ["seattle", "london"]
       ],
+      [
+          "life expectancy in New York city and Alabama",
+          ["new york city", "alabama"]
+      ],
+      ["berkeley's economy and mountain view's", ["berkeley", "mountain view"]],
+      # Check that the full place string is detected.
+      ["tell me about Placer county", ["placer county"]],
+      ["tell me about Santa Clara county", ["santa clara county"]],
+      ["median income in Santa Clara County", ["santa clara county"]],
+      ["family earnings in santa Clara county", ["santa clara county"]],
+      ["Santa Clara county's population", ["santa clara county"]],
+      [
+          "Santa Clara county's population and San Mateo county",
+          ["santa clara county", "san mateo county"]
+      ],
+      ["life expectancy in New York city", ["new york city"]],
+      [
+          "life expectancy in New York city and New York state",
+          ["new york city", "new york state"]
+      ],
   ])
   def test_heuristic_detection(self, query_str, expected):
-    # Covert all detected place string to lower case.
-    got = self.nl_ner_model.detect_places_ner(query_str)
+    got = nl_utils.place_detection_with_heuristics(
+        self.nl_ner_model.detect_places_ner, query_str)
     self.assertEqual(expected, got)
 
   @parameterized.expand(

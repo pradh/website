@@ -13,6 +13,7 @@
 # limitations under the License.
 """Data Commons NL Interface routes"""
 
+import asyncio
 import json
 import logging
 import os
@@ -27,6 +28,7 @@ from flask import request
 from google.protobuf.json_format import MessageToJson
 import requests
 
+import server.lib.nl.constants as constants
 from server.lib.nl.detection import ClassificationType
 from server.lib.nl.detection import Detection
 from server.lib.nl.detection import NLClassifier
@@ -39,11 +41,10 @@ import server.lib.nl.page_config_builder as nl_page_config
 import server.lib.nl.utils as utils
 import server.lib.nl.utterance as nl_utterance
 from server.lib.util import get_disaster_dashboard_configs
+import server.services.bigtable as bt
 import server.services.datacommons as dc
 
 bp = Blueprint('nl', __name__, url_prefix='/nl')
-
-MAPS_API = "https://maps.googleapis.com/maps/api/place/textsearch/json?"
 
 
 def _get_preferred_type(types):
@@ -54,16 +55,30 @@ def _get_preferred_type(types):
 
 
 def _maps_place(place_str):
+  if place_str.lower() in constants.SPECIAL_PLACE_REPLACEMENTS:
+    logging.info(f"place_str {place_str} matched a special place.")
+    place_str = constants.SPECIAL_PLACE_REPLACEMENTS[place_str.lower()]
+    logging.info(f"place_str replaced with: {place_str}")
+
   api_key = current_app.config["MAPS_API_KEY"]
-  url_formatted = f"{MAPS_API}input={place_str}&key={api_key}"
+  # Note on 02/15/2023: Maps textsearch API has deprecated the use of
+  # `input` as a url param and instead wants `query`.
+  # Reference: https://developers.google.com/maps/deprecations#unsupported-place-search-deprecation
+  url_formatted = f"{constants.MAPS_API}query={place_str}&key={api_key}"
   r = requests.get(url_formatted)
   resp = r.json()
 
   # Return the first "political" place found.
   if "results" in resp:
     for res in resp["results"]:
-      if "political" in res["types"]:
+      types_found = set(res["types"])
+
+      if constants.MAPS_GEO_TYPES.intersection(types_found):
         return res
+
+  logging.info(
+      f"Maps API did not find a result of type in: {constants.MAPS_GEO_TYPES}. Query URL: {url_formatted}. Response: {resp}"
+  )
   return {}
 
 
@@ -94,22 +109,48 @@ def _remove_places(query, places_found):
 
 
 def _infer_place_dcid(places_found):
+  # TODO: propagate several of the logging errors in this function to place detection
+  # state displayed in debugInfo.
   if not places_found:
+    logging.info("places_found is empty. Nothing to retrieve from Maps API.")
     return ""
 
   place_dcid = ""
-  place = _maps_place(places_found[0])
-  # If maps API returned a valid place, use the place_id to
-  # get the dcid.
-  if place and ("place_id" in place):
-    place_id = place["place_id"]
-    logging.info(f"MAPS API found place with place_id: {place_id}")
-    place_ids_map = _dc_recon([place_id])
+  # Iterate over all the places until a valid place DCID is found.
+  for p_str in places_found:
+    # If this is a special place, return the known DCID.
+    if p_str.lower() in constants.OVERRIDE_PLACE_TO_DICD_FOR_MAPS_API:
+      place_dcid = constants.OVERRIDE_PLACE_TO_DICD_FOR_MAPS_API[p_str.lower()]
+      logging.info(
+          f"{p_str} was found in OVERRIDE_PLACE_TO_DICD_FOR_MAPS_API. Returning its DICD {place_dcid} without querying Maps API."
+      )
+      break
 
-    if place_id in place_ids_map:
-      place_dcid = place_ids_map[place_id]
+    logging.info(f"Searching Maps API with: {p_str}")
+    place = _maps_place(p_str)
+    # If maps API returned a valid place, use the place_id to
+    # get the dcid.
+    if place and ("place_id" in place):
+      place_id = place["place_id"]
+      logging.info(
+          f"MAPS API found place with place_id: {place_id} for place string: {p_str}."
+      )
+      place_ids_map = _dc_recon([place_id])
 
-  logging.info(f"DC API found DCID: {place_dcid}")
+      if place_id in place_ids_map:
+        place_dcid = place_ids_map[place_id]
+        logging.info(f"DC API found DCID: {place_dcid}")
+        break
+      else:
+        logging.info(
+            f"Maps API found a place {place_id} but no DCID match found for place string: {p_str}."
+        )
+    else:
+      logging.info("Maps API did not find a place for place string: {p_str}.")
+
+  if not place_dcid:
+    logging.info(
+        f"No place DCIDs were found. Using places_found = {places_found}")
   return place_dcid
 
 
@@ -135,6 +176,7 @@ def _result_with_debug_info(data_dict: Dict, status: str,
   ranking_classification = "<None>"
   overview_classification = "<None>"
   temporal_classification = "<None>"
+  size_type_classification = "<None>"
   time_delta_classification = "<None>"
   comparison_classification = "<None>"
   contained_in_classification = "<None>"
@@ -149,6 +191,8 @@ def _result_with_debug_info(data_dict: Dict, status: str,
       overview_classification = str(classification.type)
     elif classification.type == ClassificationType.TEMPORAL:
       temporal_classification = str(classification.type)
+    elif classification.type == ClassificationType.SIZE_TYPE:
+      size_type_classification = str(classification.attributes.size_types)
     elif classification.type == ClassificationType.TIME_DELTA:
       time_delta_classification = str(
           classification.attributes.time_delta_types)
@@ -169,8 +213,6 @@ def _result_with_debug_info(data_dict: Dict, status: str,
       clustering_classification += f"Cluster # 0: {str(classification.attributes.cluster_1_svs)}. "
       clustering_classification += f"Cluster # 1: {str(classification.attributes.cluster_2_svs)}."
 
-  logging.info(uttr_history)
-  logging.info(debug_counters)
   debug_info = {
       'status': status,
       'original_query': query_detection.original_query,
@@ -179,6 +221,7 @@ def _result_with_debug_info(data_dict: Dict, status: str,
       'ranking_classification': ranking_classification,
       'overview_classification': overview_classification,
       'temporal_classification': temporal_classification,
+      'size_type_classification': size_type_classification,
       'time_delta_classification': time_delta_classification,
       'contained_in_classification': contained_in_classification,
       'clustering_classification': clustering_classification,
@@ -243,6 +286,8 @@ def _detection(orig_query, cleaned_query) -> Detection:
                                          place_type=main_place_type))
   else:
     query = cleaned_query
+    # TODO: even if no place_dcid was found, debugInfo should be able to display
+    # the places_found (which can be valid even if no dcid was found).
     place_detection = None
 
   # Step 3: Identify the SV matched based on the query.
@@ -265,6 +310,7 @@ def _detection(orig_query, cleaned_query) -> Detection:
   comparison_classification = model.heuristic_comparison_classification(query)
   overview_classification = model.heuristic_overview_classification(query)
   temporal_classification = model.query_classification("temporal", query)
+  size_type_classification = model.heuristic_size_type_classification(query)
   time_delta_classification = model.heuristic_time_delta_classification(query)
   contained_in_classification = model.query_classification(
       "contained_in", query)
@@ -272,6 +318,7 @@ def _detection(orig_query, cleaned_query) -> Detection:
   logging.info(f'Ranking classification: {ranking_classification}')
   logging.info(f'Comparison classification: {comparison_classification}')
   logging.info(f'Temporal classification: {temporal_classification}')
+  logging.info(f'SizeType classification: {size_type_classification}')
   logging.info(f'TimeDelta classification: {time_delta_classification}')
   logging.info(f'ContainedIn classification: {contained_in_classification}')
   logging.info(f'Event Classification: {event_classification}')
@@ -285,6 +332,8 @@ def _detection(orig_query, cleaned_query) -> Detection:
     classifications.append(comparison_classification)
   if contained_in_classification is not None:
     classifications.append(contained_in_classification)
+  if size_type_classification is not None:
+    classifications.append(size_type_classification)
   if time_delta_classification is not None:
     classifications.append(time_delta_classification)
   if event_classification is not None:
@@ -343,12 +392,15 @@ def data():
     logging.error('Unable to load event configs!')
 
   original_query = request.args.get('q')
+  if current_app.config['LOG_QUERY']:
+    # Fire query logging and forget as bigtable write takes O(100ms)
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(bt.write_row(original_query))
   context_history = []
   escaped_context_history = []
   if request.get_json():
     context_history = request.get_json().get('contextHistory', [])
     escaped_context_history = escape(context_history)
-  logging.info(context_history)
 
   query = str(escape(utils.remove_punctuations(original_query)))
   res = {
@@ -411,3 +463,11 @@ def data():
   data_dict = _result_with_debug_info(data_dict, status_str, query_detection,
                                       context_history, dbg_counters)
   return data_dict
+
+
+@bp.route('/history')
+def history():
+  if (os.environ.get('FLASK_ENV') == 'production' or
+      not current_app.config['NL_MODEL']):
+    flask.abort(404)
+  return json.dumps(bt.read_row())

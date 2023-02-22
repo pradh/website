@@ -61,6 +61,7 @@ _TOPIC_DCID_TO_SV_OVERRIDE = {
         "Amount_CarbonDioxideAbatement",
         "Count_SolarPanel",
     ],
+    "dc/topic/WorkCommute": ["dc/svpg/WorkCommutePeerGroup"],
 }
 
 _PEER_GROUP_TO_OVERRIDE = {
@@ -179,6 +180,14 @@ _PEER_GROUP_TO_OVERRIDE = {
         "FemaNaturalHazardRiskIndex_NaturalHazardImpact_WildfireEvent",
         "FemaNaturalHazardRiskIndex_NaturalHazardImpact_WinterWeatherEvent",
     ],
+    "dc/svpg/WorkCommutePeerGroup": [
+        "dc/6rltk4kf75612",  # WFH
+        "dc/vp8cbt6k79t94",  # Walk
+        "dc/hbkh95kc7pkb6",  # Public Transport
+        "dc/wc8q05drd74bd",  # Carpooled car/truck/van
+        "dc/0gettc3bc60cb",  # Drove alone in car/truck/van
+        "dc/vt2q292eme79f",  # Taxicab/Motorcycle/Bicycle/etc
+    ],
 }
 
 _SVPG_NAMES_OVERRIDE = {
@@ -191,15 +200,17 @@ _SVPG_NAMES_OVERRIDE = {
     "dc/svpg/SolarPanelPotential":
         "Solar Panel Potential",
     "dc/svpg/ProjectedClimateExtremes_HighestMaxTemp":
-        "Projected highest increase in max temperature in different scenarios",
+        "Projected highest increase in max temperature under different scenarios",
     "dc/svpg/ProjectedClimateExtremes_LowestMinTemp":
-        "Projected highest decrease in min temperature in different scenarios",
+        "Projected highest decrease in min temperature under different scenarios",
     "dc/svpg/ClimateChange_FEMARisk":
         "Risk due to various Natural Hazards",
     "dc/svpg/IndividualIncome":
         "Individual Income",
     "dc/svpg/HouseholdIncome":
         "Houshold Income",
+    "dc/svpg/WorkCommutePeerGroup":
+        "Modes of Commute",
 }
 
 _SVPG_DESC_OVERRIDE = {
@@ -217,6 +228,7 @@ _TOPIC_NAMES_OVERRIDE = {
     "dc/topic/ProjectedClimateExtremes": "Projected Climate Extremes",
     "dc/topic/ClimateChange": "Climate Change",
     "dc/topic/SolarPotential": "Solar Potential",
+    "dc/topic/WorkCommute": "Commute",
 }
 
 
