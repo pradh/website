@@ -116,3 +116,28 @@ def search_places():
   except Exception as e:
     logging.error(f'NER place detection failed with error: {e}')
     return json.dumps({'places': []})
+
+
+@bp.route('/api/dc_place_recog/', methods=['GET'])
+def dc_place_recog():
+  """Returns a dictionary with the following keys and values
+
+  {
+    'spans': List[Dict[]]
+  }
+
+  The internal dict is of the form:
+
+  {
+    'span': 'Original Query Part',
+    'places': ['dcid1', 'dcid2', ...]
+  }
+  """
+  query = str(escape(request.args.get('q')))
+  nl_place_recog = current_app.config['NL_DC_PLACE_RECOG']
+  try:
+    res = nl_place_recog.detect_places(query)
+    return json.dumps({'spans': res})
+  except Exception as e:
+    logging.error(f'DC place recognition failed with error: {e}')
+    return json.dumps({'spans': []})
