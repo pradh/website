@@ -39,18 +39,30 @@ flags.DEFINE_string(
     'test', '', 'Test index. Can be a versioned embeddings file name on GCS '
     'or a local file with absolute path')
 flags.DEFINE_string('queryset', '', 'Full path to queryset CSV')
+flags.DEFINE_string('run_name', '', 'Name of the run')
 
 _TEMPLATE = 'tools/nl/svindex_differ/template.html'
-_REPORT = '/tmp/diff_report.html'
 _FILE_PATTERN = r'embeddings_.*_\d{4}_\d{2}_\d{2}_\d{2}_\d{2}_\d{2}\.csv'
 
 
+def _report():
+  return f'/tmp/diff_report_{FLAGS.run_name}.html'
+
+
+def _diagnosis_csv():
+  return f'/tmp/diff_diagnosis_{FLAGS.run_name}.csv'
+
+
 def _prune(res):
-  result = []
+  sv_result = []
+  display_result = []
   for i in range(len(res['SV'])):
     if i < _NUM_SVS and res['CosineScore'][i] >= _SV_THRESHOLD:
-      result.append(res['SV'][i])
-  return result
+      sv = res['SV'][i]
+      score_str = str(round(res["CosineScore"][i], 3))
+      sv_result.append(sv)
+      display_result.append(f'{sv}  ({score_str})')
+  return sv_result, display_result
 
 
 def _maybe_copy(file):
@@ -68,7 +80,7 @@ def _diff_table(base, test):
   return difflib.HtmlDiff().make_table(base, test)
 
 
-def run_diff(base_file, test_file, query_file, output_file):
+def run_diff(base_file, test_file, query_file, report_file, diagnosis_file):
   env = Environment(loader=FileSystemLoader(os.path.dirname(_TEMPLATE)))
   env.filters['diff_table'] = _diff_table
   template = env.get_template(os.path.basename(_TEMPLATE))
@@ -77,7 +89,9 @@ def run_diff(base_file, test_file, query_file, output_file):
   test = Embeddings(test_file)
 
   diffs = []
+  csv_output = [['Query', 'Win/Loss', 'Diagnosis']]
   with open(query_file) as f:
+    idx = 1
     for row in csv.reader(f):
       if not row:
         continue
@@ -85,27 +99,34 @@ def run_diff(base_file, test_file, query_file, output_file):
       if not query or query.startswith('#') or query.startswith('//'):
         continue
       assert ';' not in query, 'Multiple query not yet supported'
-      base_result = _prune(base.detect_svs(query))
-      test_result = _prune(test.detect_svs(query))
-      if base_result != test_result:
-        diffs.append((query, base_result, test_result))
+      base_svs, base_display = _prune(base.detect_svs(query))
+      test_svs, test_display = _prune(test.detect_svs(query))
+      if base_svs != test_svs:
+        diffs.append((query, base_display, test_display))
+        csv_output.append([f'{idx}: {query}', '', ''])
+        idx += 1
 
-  with open(output_file, 'w') as f:
+  with open(report_file, 'w') as f:
     f.write(
         template.render(base_file=FLAGS.base,
                         test_file=FLAGS.test,
                         diff_table=_diff_table,
                         diffs=diffs))
+
+  with open(diagnosis_file, 'w') as f:
+    csv.writer(f).writerows(csv_output)
+
   print('')
-  print(f'Output written to {output_file}')
+  print(f'Report written to {report_file}')
+  print(f'Diagnosis file written to {diagnosis_file}')
   print('')
 
 
 def main(_):
-  assert FLAGS.base and FLAGS.test and FLAGS.queryset
+  assert FLAGS.base and FLAGS.test and FLAGS.queryset and FLAGS.run_name
   base_file = _maybe_copy(FLAGS.base)
   test_file = _maybe_copy(FLAGS.test)
-  run_diff(base_file, test_file, FLAGS.queryset, _REPORT)
+  run_diff(base_file, test_file, FLAGS.queryset, _report(), _diagnosis_csv())
 
 
 if __name__ == "__main__":
