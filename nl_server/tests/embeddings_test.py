@@ -51,7 +51,7 @@ class TestEmbeddings(unittest.TestCase):
     # Look for the Embeddings in the cache if it exists.
     cache = Cache(nl_cache_path)
     cache.expire()
-    cls.nl_embeddings = cache.get(loader.nl_embeddings_cache_key())
+    cls.nl_embeddings = cache.get(loader.nl_embeddings_cache_key('small'))
     if not cls.nl_embeddings:
       print(
           "Could not load the embeddings from the cache for these tests. Loading a new embeddings object."

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Main entry module for NL app."""
 
+import os
 import logging
 
 from nl_server.__init__ import create_app
@@ -30,4 +31,7 @@ if __name__ == '__main__':
   # This is used when running locally only. When deploying to GKE,
   # a webserver process such as Gunicorn will serve the app.
   logging.info("Run nl server in local mode")
-  app.run(host='127.0.0.1', port=6060, debug=True)
+  extra_files = []
+  for dir in ['nl_server', 'shared/lib']:
+    extra_files.extend([os.path.join(dir, f) for f in os.listdir(dir)])
+  app.run(host='127.0.0.1', port=6060, debug=True, extra_files=extra_files)

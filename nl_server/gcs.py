@@ -14,14 +14,14 @@
 
 BUCKET = 'datcom-nl-models'
 TEMP_DIR = '/tmp/'
+CACHE_DIR = '~/.datacommons/'
 
 import os
 from pathlib import Path
-import shutil
 from typing import Any
 
+from nl_server import cache as nl_cache
 from google.cloud import storage
-from sentence_transformers import SentenceTransformer
 
 
 # Downloads the `embeddings_file` from GCS to TEMP_DIR
@@ -36,8 +36,16 @@ def download_embeddings(embeddings_file: str) -> str:
   return local_embeddings_path
 
 
+def temp_dir() -> str:
+  flask_env = os.environ.get('FLASK_ENV')
+  if nl_cache.use_cache(flask_env):
+    return CACHE_DIR
+  else:
+    return TEMP_DIR
+  
+
 def local_path(embeddings_file: str) -> str:
-  return os.path.join(TEMP_DIR, embeddings_file)
+  return os.path.join(temp_dir(), embeddings_file)
 
 
 def download_model_from_gcs(gcs_bucket: Any, local_dir: str,
@@ -78,28 +86,12 @@ def download_model_from_gcs(gcs_bucket: Any, local_dir: str,
 def download_model_folder(model_folder: str) -> str:
   sc = storage.Client()
   bucket = sc.bucket(bucket_name=BUCKET)
-  directory = TEMP_DIR
+  directory = temp_dir()
 
   # Only download if needed.
   model_path = os.path.join(directory, model_folder)
   if os.path.exists(model_path):
-    if os.environ.get('FLASK_ENV') not in [
-        'local', 'test', 'integration_test', 'webdriver'
-    ]:
-      # If a production or production-like enrivonment,
-      # just return the model_path.
-      return model_path
-
-    # Check if this path can still be loaded as a Sentence Transformer
-    # model. If not, delete it and download anew.
-    try:
-      _ = SentenceTransformer(model_path)
-      return model_path
-    except:
-      print(f"Could not load the model from ({model_path}).")
-      print("Deleting this path and re-downloading.")
-      shutil.rmtree(model_path)
-      assert (not os.path.exists(model_path))
+    return model_path
 
   print(
       f"Model ({model_folder}) was either not previously downloaded or cannot successfully be loaded. Downloading to: {model_path}"

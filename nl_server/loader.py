@@ -16,6 +16,7 @@ import logging
 import os
 
 from nl_server import gcs
+from nl_server import cache as nl_cache
 from nl_server.embeddings import Embeddings
 from nl_server.ner_place_model import NERPlaces
 
@@ -27,16 +28,12 @@ nl_cache_expire = 3600 * 24  # Cache for 1 day
 DEFAULT_INDEX_TYPE = 'small'
 
 
-def nl_embeddings_cache_key(index_type=DEFAULT_INDEX_TYPE):
+def nl_embeddings_cache_key(index_type):
   return f'{nl_embeddings_cache_key_base}_{index_type}'
 
 
 def embeddings_config_key(index_type):
   return f'NL_EMBEDDINGS_{index_type.upper()}'
-
-
-def _use_cache(flask_env):
-  return flask_env in ['local', 'integration_test', 'webdriver']
 
 
 def download_models(models_map):
@@ -66,7 +63,7 @@ def load_embeddings(app, embeddings_map, models_downloaded_paths):
 
   # In local dev, cache the embeddings on disk so each hot reload won't download
   # the embeddings again.
-  if _use_cache(flask_env):
+  if nl_cache.use_cache(flask_env):
     from diskcache import Cache
     cache = Cache(nl_cache_path)
     cache.expire()
@@ -103,14 +100,15 @@ def load_embeddings(app, embeddings_map, models_downloaded_paths):
     if "_ft" in sz:
       assert existing_model_path, f"Could not find a finetuned model for finetuned embeddings ({sz}) version: {embeddings_map[sz]}"
 
-    nl_embeddings = Embeddings(gcs.download_embeddings(embeddings_map[sz]),
-                               existing_model_path)
-    app.config[embeddings_config_key(sz)] = nl_embeddings
+    if embeddings_config_key(sz) not in app.config:
+      nl_embeddings = Embeddings(gcs.download_embeddings(embeddings_map[sz]),
+                                 existing_model_path)
+      app.config[embeddings_config_key(sz)] = nl_embeddings
 
   nl_ner_places = NERPlaces()
   app.config["NL_NER_PLACES"] = nl_ner_places
 
-  if _use_cache(flask_env):
+  if nl_cache.use_cache(flask_env):
     with Cache(cache.directory) as reference:
       for sz in embeddings_map.keys():
         reference.set(nl_embeddings_cache_key(sz),
