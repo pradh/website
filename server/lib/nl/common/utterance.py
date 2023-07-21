@@ -35,8 +35,6 @@ from server.lib.nl.detection.types import Place
 from server.lib.nl.detection.types import RankingClassificationAttributes
 from server.lib.nl.detection.types import RankingType
 from server.lib.nl.detection.types import SimpleClassificationAttributes
-from server.lib.nl.detection.types import SizeType
-from server.lib.nl.detection.types import SizeTypeClassificationAttributes
 from server.lib.nl.detection.types import TimeDeltaClassificationAttributes
 from server.lib.nl.detection.types import TimeDeltaType
 from shared.lib.detected_variables import MultiVarCandidates
@@ -72,7 +70,6 @@ class QueryType(IntEnum):
   TIME_DELTA_ACROSS_PLACES = 8
   EVENT = 9
   OVERVIEW = 10
-  SIZE_ACROSS_ENTITIES = 11
   # This is [cities with population over 1M]
   FILTER_WITH_SINGLE_VAR = 12
   # This is [median age in cities with population over 1M]
@@ -242,8 +239,6 @@ def classification_to_dict(classifications: List[NLClassifier]) -> List[Dict]:
       cdict['ranking_type'] = c.attributes.ranking_type
     elif isinstance(c.attributes, TimeDeltaClassificationAttributes):
       cdict['time_delta_type'] = c.attributes.time_delta_types
-    elif isinstance(c.attributes, SizeTypeClassificationAttributes):
-      cdict['size_type'] = c.attributes.size_types
 
     classifications_dict.append(cdict)
   return classifications_dict
@@ -270,10 +265,6 @@ def dict_to_classification(
       attributes = TimeDeltaClassificationAttributes(
           time_delta_types=[TimeDeltaType(t) for t in cdict['time_delta_type']],
           time_delta_trigger_words=[])
-    elif 'size_type' in cdict:
-      attributes = SizeTypeClassificationAttributes(
-          size_types=[SizeType(t) for t in cdict['size_type']],
-          size_types_trigger_words=[])
     classifications.append(
         NLClassifier(type=ClassificationType(cdict['type']),
                      attributes=attributes))

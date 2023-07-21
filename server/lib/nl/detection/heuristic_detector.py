@@ -59,7 +59,6 @@ def detect(place_detector_type: PlaceDetectorType, orig_query: str,
   comparison_classification = heuristic_classifiers.comparison(query)
   correlation_classification = heuristic_classifiers.correlation(query)
   overview_classification = heuristic_classifiers.overview(query)
-  size_type_classification = heuristic_classifiers.size_type(query)
   time_delta_classification = heuristic_classifiers.time_delta(query)
   contained_in_classification = heuristic_classifiers.containedin(query)
   event_classification = heuristic_classifiers.event(query)
@@ -68,7 +67,6 @@ def detect(place_detector_type: PlaceDetectorType, orig_query: str,
   logging.info(f'Ranking classification: {ranking_classification}')
   logging.info(f'Comparison classification: {comparison_classification}')
   logging.info(f'Correlation classification: {correlation_classification}')
-  logging.info(f'SizeType classification: {size_type_classification}')
   logging.info(f'TimeDelta classification: {time_delta_classification}')
   logging.info(f'ContainedIn classification: {contained_in_classification}')
   logging.info(f'Event Classification: {event_classification}')
@@ -83,8 +81,6 @@ def detect(place_detector_type: PlaceDetectorType, orig_query: str,
     classifications.append(comparison_classification)
   if contained_in_classification is not None:
     classifications.append(contained_in_classification)
-  if size_type_classification is not None:
-    classifications.append(size_type_classification)
   if time_delta_classification is not None:
     classifications.append(time_delta_classification)
   if event_classification is not None:

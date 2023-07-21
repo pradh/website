@@ -61,10 +61,9 @@ def need_llm(heuristic: Detection, prev_uttr: Utterance,
 
     # For OVERVIEW/SIZE_TYPE/EVENT_TYPE classifications, we don't have SVs,
     # exclude those.
-    has_sv_classification = any(
-        cl.type == ClassificationType.OVERVIEW or cl.type ==
-        ClassificationType.SIZE_TYPE or cl.type == ClassificationType.EVENT
-        for cl in heuristic.classifications)
+    has_sv_classification = any(cl.type == ClassificationType.OVERVIEW or
+                                cl.type == ClassificationType.EVENT
+                                for cl in heuristic.classifications)
 
     # Check if the context had SVs.
     if not has_sv_classification and not context.has_sv_in_context(prev_uttr):

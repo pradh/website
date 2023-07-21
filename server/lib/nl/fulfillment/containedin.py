@@ -19,32 +19,28 @@ from server.lib.nl.common import utils
 from server.lib.nl.common.utterance import ChartOriginType
 from server.lib.nl.common.utterance import ChartType
 from server.lib.nl.common.utterance import Utterance
-from server.lib.nl.detection.types import ClassificationType
-from server.lib.nl.detection.types import ContainedInClassificationAttributes
 from server.lib.nl.detection.types import Place
 from server.lib.nl.fulfillment.base import add_chart_to_utterance
 from server.lib.nl.fulfillment.base import populate_charts
-from server.lib.nl.fulfillment.context import \
-    classifications_of_type_from_utterance
 from server.lib.nl.fulfillment.types import ChartVars
 from server.lib.nl.fulfillment.types import PopulateState
+import server.lib.nl.fulfillment.utils as futils
 
 
 def populate(uttr: Utterance) -> bool:
-  # Loop over all CONTAINED_IN classifications (from current to past) in order.
-  classifications = classifications_of_type_from_utterance(
-      uttr, ClassificationType.CONTAINED_IN)
-  for classification in classifications:
-    if (not classification or not isinstance(
-        classification.attributes, ContainedInClassificationAttributes)):
-      continue
-    place_type = classification.attributes.contained_in_place_type
-    if populate_charts(
-        PopulateState(uttr=uttr, main_cb=_populate_cb, place_type=place_type)):
-      return True
-    else:
-      uttr.counters.err('containedin_failed_populate_placetype',
-                        place_type.value)
+  place_type = utils.get_contained_in_type(uttr)
+  has_default_vars = False
+  if not uttr.svs:
+    uttr.svs = futils.get_default_vars(place_type)
+    has_default_vars = True
+  if populate_charts(
+      PopulateState(uttr=uttr,
+                    main_cb=_populate_cb,
+                    place_type=place_type,
+                    has_default_vars=has_default_vars)):
+    return True
+  else:
+    uttr.counters.err('containedin_failed_populate_placetype', place_type.value)
   return False
 
 
@@ -59,10 +55,6 @@ def _populate_cb(state: PopulateState, chart_vars: ChartVars,
   if not state.place_type:
     state.uttr.counters.err('containedin_failed_cb_missing_type', 1)
     return False
-  if not utils.has_map(state.place_type, contained_places):
-    state.uttr.counters.err('containedin_failed_cb_nonmap_type',
-                            state.place_type)
-    return False
   if not chart_vars:
     state.uttr.counters.err('containedin_failed_cb_missing_chat_vars', 1)
     return False
@@ -74,7 +66,18 @@ def _populate_cb(state: PopulateState, chart_vars: ChartVars,
                             contained_places)
     return False
 
-  chart_vars.response_type = "comparison map"
-  add_chart_to_utterance(ChartType.MAP_CHART, state, chart_vars,
-                         contained_places, chart_origin)
+  if (state.has_default_vars or state.place_type in futils.SCHOOL_TYPES):
+    chart_vars.include_percapita = False
+  else:
+    chart_vars.include_percapita = True
+
+  if (utils.has_map(state.place_type, contained_places) and
+      not state.has_default_vars):
+    chart_vars.response_type = "comparison map"
+    add_chart_to_utterance(ChartType.MAP_CHART, state, chart_vars,
+                           contained_places, chart_origin)
+  else:
+    chart_vars.skip_map_for_ranking = True
+    add_chart_to_utterance(ChartType.RANKING_CHART, state, chart_vars,
+                           contained_places, chart_origin)
   return True

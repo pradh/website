@@ -88,6 +88,12 @@ class RankingType(IntEnum):
   # Ex: "Temperature extremes" -> show high and very low temperatures
   EXTREME = 5
 
+  # Relates to the size of an entity.
+  # "how big ..."
+  # "how small ..."
+  BIG = 6
+  SMALL = 7
+
 
 # Note: Inherit from `str` so that if the enum gets logged as json the serializer
 # will not complain.
@@ -161,19 +167,6 @@ class TimeDeltaType(IntEnum):
   """Indicates whether query refers to an increase or decrease in SV values."""
   INCREASE = 0
   DECREASE = 1
-
-
-class SizeType(IntEnum):
-  """SizeType indicates the type of size query specified."""
-  NONE = 0
-
-  # BIG is for queries like:
-  # "how big ..."
-  BIG = 1
-
-  # SMALL is for queries like:
-  # "how small ..."
-  SMALL = 2
 
 
 class ClassificationAttributes(ABC):
@@ -265,16 +258,6 @@ class TimeDeltaClassificationAttributes(ClassificationAttributes):
   time_delta_trigger_words: List[str]
 
 
-@dataclass
-class SizeTypeClassificationAttributes(ClassificationAttributes):
-  """Size classification attributes."""
-  size_types: List[SizeType]
-
-  # List of words which made this a size-type query:
-  # e.g. "big", "small" etc
-  size_types_trigger_words: List[str]
-
-
 class QCmpType(str, Enum):
   """Enum to represent comparison types"""
   EQ = "EQ"
@@ -331,8 +314,7 @@ class ClassificationType(IntEnum):
   TIME_DELTA = 8
   EVENT = 9
   OVERVIEW = 10
-  SIZE_TYPE = 11
-  UNKNOWN = 13
+  UNKNOWN = 11
 
 
 @dataclass

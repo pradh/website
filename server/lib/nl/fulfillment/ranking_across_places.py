@@ -20,10 +20,12 @@ from server.lib.nl.common.utterance import ChartOriginType
 from server.lib.nl.common.utterance import ChartType
 from server.lib.nl.common.utterance import Utterance
 from server.lib.nl.detection.types import Place
+from server.lib.nl.detection.types import RankingType
 from server.lib.nl.fulfillment.base import add_chart_to_utterance
 from server.lib.nl.fulfillment.base import populate_charts
 from server.lib.nl.fulfillment.types import ChartVars
 from server.lib.nl.fulfillment.types import PopulateState
+import server.lib.nl.fulfillment.utils as futils
 
 
 #
@@ -37,11 +39,14 @@ def populate(uttr: Utterance):
   ranking_types = utils.get_ranking_types(uttr)
   place_type = utils.get_contained_in_type(uttr)
   if ranking_types and place_type:
+    has_default = _maybe_add_default_svs(uttr, ranking_types, place_type)
+    ranking_types = _maybe_remap_size(ranking_types)
     if populate_charts(
         PopulateState(uttr=uttr,
                       main_cb=_populate_cb,
                       place_type=place_type,
-                      ranking_types=ranking_types)):
+                      ranking_types=ranking_types,
+                      has_default_vars=has_default)):
       return True
     else:
       uttr.counters.err('ranking-across-places_failed_populate_placetype',
@@ -78,6 +83,38 @@ def _populate_cb(state: PopulateState, chart_vars: ChartVars,
     chart_vars.response_type = "ranking table"
     if not utils.has_map(state.place_type, places):
       chart_vars.skip_map_for_ranking = True
-    chart_vars.include_percapita = True
+    if (state.has_default_vars or state.place_type in futils.SCHOOL_TYPES):
+      chart_vars.include_percapita = False
+    else:
+      chart_vars.include_percapita = True
     return add_chart_to_utterance(ChartType.RANKING_CHART, state, chart_vars,
                                   places, chart_origin)
+
+
+def _maybe_add_default_svs(uttr, ranking_type, place_type):
+  if uttr.svs:
+    #
+    # NOTE: The is_non_geo_place_type check is there for non-geo places
+    # like schools which are not removed as stop-words for SV query.
+    # For example, [how big are high schools] query, since we pass in
+    # "high schools", they will indeed often match SVs.  So we let the
+    # `SIZE_TYPE` heuristic override.
+    #   TODO: Find a better approach
+    #
+    if (ranking_type not in [RankingType.BIG, RankingType.SMALL] or
+        not utils.is_non_geo_place_type(place_type)):
+      return
+    uttr.counters.info('ranking-across-places_override_default_vars', '')
+  uttr.svs = futils.get_default_vars(place_type)
+
+
+def _maybe_remap_size(ranking_types):
+  res = []
+  for r in ranking_types:
+    if r == RankingType.BIG:
+      res.append(RankingType.HIGH)
+    elif r == RankingType.SMALL:
+      res.append(RankingType.SMALL)
+    else:
+      res.append(r)
+  return res

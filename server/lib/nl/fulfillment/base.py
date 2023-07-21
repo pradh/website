@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 import logging
 import time
 from typing import List
@@ -59,7 +60,7 @@ def add_chart_to_utterance(chart_type: ChartType, state: PopulateState,
   attr = {
       "class": primary_vs_secondary,
       "place_type": place_type,
-      "ranking_types": state.ranking_types,
+      "ranking_types": copy.deepcopy(state.ranking_types),
       "block_id": chart_vars.block_id,
       "include_percapita": chart_vars.include_percapita,
       "title": chart_vars.title,
@@ -77,6 +78,8 @@ def add_chart_to_utterance(chart_type: ChartType, state: PopulateState,
     attr['title_suffix'] = chart_vars.title_suffix
   if chart_vars.orig_sv:
     attr['orig_sv'] = chart_vars.orig_sv
+  if state.has_default_vars:
+    attr['ranking_count'] = 30
   ch = ChartSpec(chart_type=chart_type,
                  svs=chart_vars.svs,
                  event=chart_vars.event,

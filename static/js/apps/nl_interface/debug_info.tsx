@@ -183,7 +183,6 @@ export function DebugInfo(props: DebugInfoProps): JSX.Element {
     svSentences: props.debugData["svs_to_sentences"],
     rankingClassification: props.debugData["ranking_classification"],
     overviewClassification: props.debugData["overview_classification"],
-    sizeTypeClassification: props.debugData["size_type_classification"],
     timeDeltaClassification: props.debugData["time_delta_classification"],
     comparisonClassification: props.debugData["comparison_classification"],
     containedInClassification: props.debugData["contained_in_classification"],
@@ -250,12 +249,6 @@ export function DebugInfo(props: DebugInfoProps): JSX.Element {
           </Row>
           <Row>
             <Col>Ranking classification: {debugInfo.rankingClassification}</Col>
-          </Row>
-          <Row>
-            <Col>
-              Size Type (generic) classification:{" "}
-              {debugInfo.sizeTypeClassification}
-            </Col>
           </Row>
           <Row>
             <Col>

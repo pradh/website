@@ -24,9 +24,11 @@ from server.lib.nl.detection.types import Place
 from server.lib.nl.detection.types import RankingType
 
 
-def _set_ranking_tile_spec(ranking_types: List[RankingType], pri_sv: str,
-                           ranking_tile_spec: RankingTileSpec):
-  ranking_tile_spec.ranking_count = 10
+def _set_ranking_tile_spec(ranking_types: List[RankingType],
+                           pri_sv: str,
+                           ranking_tile_spec: RankingTileSpec,
+                           ranking_count: int = 10):
+  ranking_tile_spec.ranking_count = ranking_count
   # TODO: Add more robust checks.
   if "CriminalActivities" in pri_sv or 'UnemploymentRate' in pri_sv:
     # first check if "best" or "worst"
@@ -38,7 +40,10 @@ def _set_ranking_tile_spec(ranking_types: List[RankingType], pri_sv: str,
       # otherwise, render normally
       if RankingType.HIGH in ranking_types:
         ranking_tile_spec.show_highest = True
-      if RankingType.LOW in ranking_types:
+      elif RankingType.LOW in ranking_types:
+        ranking_tile_spec.show_lowest = True
+      else:
+        # Default to lowest for these (positivity!).
         ranking_tile_spec.show_lowest = True
   else:
     if RankingType.HIGH in ranking_types:
@@ -50,6 +55,9 @@ def _set_ranking_tile_spec(ranking_types: List[RankingType], pri_sv: str,
         ranking_tile_spec.show_lowest = True
       else:
         ranking_tile_spec.show_highest = True
+    else:
+      # Default to highest
+      ranking_tile_spec.show_highest = True
 
 
 def _does_extreme_mean_low(sv: str) -> bool:
@@ -107,7 +115,10 @@ def ranking_chart_block_nopc(column, pri_place: Place, pri_sv: str,
   tile = column.tiles.add()
   tile.stat_var_key.append(pri_sv)
   tile.type = Tile.TileType.RANKING
-  _set_ranking_tile_spec(attr['ranking_types'], pri_sv, tile.ranking_tile_spec)
+  _set_ranking_tile_spec(attr['ranking_types'],
+                         pri_sv,
+                         tile.ranking_tile_spec,
+                         ranking_count=attr.get('ranking_count', 10))
   tile.title = base.decorate_chart_title(title=sv2thing.name[pri_sv],
                                          place=pri_place,
                                          add_date=True,
@@ -134,7 +145,10 @@ def ranking_chart_block_pc(column, pri_place: Place, pri_sv: str,
   sv_key = pri_sv + "_pc"
   tile.stat_var_key.append(sv_key)
   tile.type = Tile.TileType.RANKING
-  _set_ranking_tile_spec(attr['ranking_types'], pri_sv, tile.ranking_tile_spec)
+  _set_ranking_tile_spec(attr['ranking_types'],
+                         pri_sv,
+                         tile.ranking_tile_spec,
+                         ranking_count=attr.get('ranking_count', 10))
   tile.title = base.decorate_chart_title(title=sv2thing.name[pri_sv],
                                          place=pri_place,
                                          add_date=True,
@@ -152,8 +166,10 @@ def ranking_chart_block_pc(column, pri_place: Place, pri_sv: str,
     sv_key = pri_sv + "_" + denom_sv
     tile.stat_var_key.append(sv_key)
     tile.type = Tile.TileType.RANKING
-    _set_ranking_tile_spec(attr['ranking_types'], pri_sv,
-                           tile.ranking_tile_spec)
+    _set_ranking_tile_spec(attr['ranking_types'],
+                           pri_sv,
+                           tile.ranking_tile_spec,
+                           ranking_count=attr.get('ranking_count', 10))
     sv_title = sv2thing.name[pri_sv] + " " + name_suffix
     tile.title = base.decorate_chart_title(title=sv_title,
                                            place=pri_place,

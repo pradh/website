@@ -20,8 +20,6 @@ from server.lib.nl.detection import types
 import server.lib.nl.fulfillment.base as base
 import server.lib.nl.fulfillment.context as ctx
 
-_DEFAULT_EVENT_PLACE = types.Place("country/USA", "USA", "Country")
-
 #
 # Handler for Event queries.
 #

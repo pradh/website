@@ -70,7 +70,6 @@ export interface DebugInfo {
   svSentences: Map<string, Array<string>>;
   rankingClassification: string;
   overviewClassification: string;
-  sizeTypeClassification: string;
   timeDeltaClassification: string;
   comparisonClassification: string;
   containedInClassification: string;

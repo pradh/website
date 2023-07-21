@@ -38,6 +38,7 @@ class PopulateState:
   time_delta_types: List[TimeDeltaType] = field(default_factory=list)
   quantity: QuantityClassificationAttributes = None
   block_id: int = 0
+  has_default_vars: bool = False
 
 
 # Data structure for configuring the vars that go into a chart.

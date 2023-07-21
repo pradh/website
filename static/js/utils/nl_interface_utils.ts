@@ -103,7 +103,6 @@ export function getFeedbackLink(query: string, debugData: any): string {
       queryForVariableDetection: debugData["query_with_places_removed"],
       rankingClassification: debugData["ranking_classification"],
       overviewClassification: debugData["overview_classification"],
-      sizeTypeClassification: debugData["size_type_classification"],
       timeDeltaClassification: debugData["time_delta_classification"],
       comparisonClassification: debugData["comparison_classification"],
       containedInClassification: debugData["contained_in_classification"],

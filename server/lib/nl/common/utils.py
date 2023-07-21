@@ -239,17 +239,6 @@ def get_contained_in_type(
   return place_type
 
 
-def get_size_types(uttr: nl_uttr.Utterance) -> List[types.SizeType]:
-  classification = ctx.classifications_of_type_from_utterance(
-      uttr, types.ClassificationType.SIZE_TYPE)
-  size_types = []
-  if (classification and isinstance(classification[0].attributes,
-                                    types.SizeTypeClassificationAttributes)):
-    # Ranking among places.
-    size_types = classification[0].attributes.size_types
-  return size_types
-
-
 def get_ranking_types(uttr: nl_uttr.Utterance) -> List[types.RankingType]:
   classification = ctx.classifications_of_type_from_utterance(
       uttr, types.ClassificationType.RANKING)

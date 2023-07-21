@@ -227,18 +227,9 @@ QUERY_CLASSIFICATION_HEURISTICS: Dict[str, Union[List[str], Dict[
             "High": [
                 "most",
                 "(?<!bottom to )top",
-                "best",  # leaving here for backwards-compatibility
                 "(?<!lowest to )highest",
                 "high",
                 "largest",
-                "biggest",
-                "greatest",
-                "strongest",
-                "richest",
-                "sickest",
-                "illest",
-                "oldest",
-                "major",  # as in 'major storms'
                 "descending",
                 "top to bottom",
                 "highest to lowest",
@@ -246,21 +237,24 @@ QUERY_CLASSIFICATION_HEURISTICS: Dict[str, Union[List[str], Dict[
             "Low": [
                 "least",
                 "(?<!top to )bottom",
-                "worst",  # leaving here for backwards-compatibility
                 "(?<!highest to )lowest",
                 "low",
                 "smallest",
-                "weakest",
-                "youngest",
-                "poorest",
-                "healthiest",
                 "ascending",
                 "bottom to top",
                 "lowest to highest",
             ],
             "Best": ["best",],
             "Worst": ["worst",],
-            "Extreme": ["extremes?", "impact"]
+            "Extreme": ["extremes?", "impact"],
+            "Big": [
+                "big",
+                "biggest",
+            ],
+            "Small": [
+                "small",
+                "smallest",
+            ],
         },
         "Comparison": [
             "compare(s|d)?",
@@ -327,10 +321,6 @@ QUERY_CLASSIFICATION_HEURISTICS: Dict[str, Union[List[str], Dict[
                 "drop(ped|s)?",
                 "loss(es)?",
             ],
-        },
-        "SizeType": {
-            "Big": ["big",],
-            "Small": ["small",],
         },
         "Overview": ["tell me (more )?about",],
     }

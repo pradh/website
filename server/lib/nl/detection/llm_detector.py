@@ -34,7 +34,7 @@ _LLM_TYPE_TO_CLASSIFICATION_TYPE = {
     'SUB_PLACE_TYPE':
         (types.ClassificationType.CONTAINED_IN, 'contained_in_place_type'),
     'GROWTH': (types.ClassificationType.TIME_DELTA, 'time_delta_type'),
-    'SIZE': (types.ClassificationType.SIZE_TYPE, 'size_type'),
+    'SIZE': (types.ClassificationType.RANKING, 'ranking_type'),
     'DISASTER_EVENT': (types.ClassificationType.EVENT, 'event_type'),
 }
 
@@ -68,8 +68,8 @@ _LLM_TYPE_TO_CLASSIFICATION_SUBTYPE = {
         'DECREASE': types.TimeDeltaType.DECREASE,
     },
     'SIZE': {
-        'BIG': types.SizeType.BIG,
-        'SMALL': types.SizeType.SMALL,
+        'BIG': types.RankingType.BIG,
+        'SMALL': types.RankingType.SMALL,
     },
     'DISASTER_EVENT': {
         'FIRE': types.EventType.FIRE,

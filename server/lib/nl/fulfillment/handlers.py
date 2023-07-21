@@ -36,7 +36,6 @@ from server.lib.nl.fulfillment import overview
 from server.lib.nl.fulfillment import ranking_across_places
 from server.lib.nl.fulfillment import ranking_across_vars
 from server.lib.nl.fulfillment import simple
-from server.lib.nl.fulfillment import size_across_entities
 from server.lib.nl.fulfillment import time_delta_across_places
 from server.lib.nl.fulfillment import time_delta_across_vars
 
@@ -90,17 +89,13 @@ QUERY_HANDLERS = {
         QueryHandlerConfig(module=event,
                            rank=9,
                            direct_fallback=QueryType.SIMPLE),
-    QueryType.SIZE_ACROSS_ENTITIES:
-        QueryHandlerConfig(module=size_across_entities,
-                           rank=10,
-                           direct_fallback=QueryType.SIMPLE),
     QueryType.FILTER_WITH_SINGLE_VAR:
         QueryHandlerConfig(module=filter_with_single_var,
-                           rank=11,
+                           rank=10,
                            direct_fallback=QueryType.CONTAINED_IN),
     QueryType.FILTER_WITH_DUAL_VARS:
         QueryHandlerConfig(module=filter_with_dual_vars,
-                           rank=12,
+                           rank=11,
                            direct_fallback=QueryType.CONTAINED_IN),
 
     # Overview trumps everything else ("tell us about"), and
@@ -164,8 +159,6 @@ def _classification_to_query_type(cl: NLClassifier,
     query_type = QueryType.CONTAINED_IN
   elif cl.type == ClassificationType.EVENT:
     query_type = QueryType.EVENT
-  elif cl.type == ClassificationType.SIZE_TYPE:
-    query_type = QueryType.SIZE_ACROSS_ENTITIES
   elif cl.type == ClassificationType.SIMPLE:
     query_type = QueryType.SIMPLE
   elif cl.type == ClassificationType.OVERVIEW:
