@@ -466,6 +466,14 @@
                     "type": "LINE"
                   },
                   {
+                    "placeDcidOverride": "country/NRU",
+                    "statVarKey": [
+                      "sdg/SP_ACS_BSRVH2O"
+                    ],
+                    "title": "Nauru",
+                    "type": "LINE"
+                  },
+                  {
                     "placeDcidOverride": "country/FSM",
                     "statVarKey": [
                       "sdg/SP_ACS_BSRVH2O"
@@ -495,14 +503,6 @@
                       "sdg/SP_ACS_BSRVH2O"
                     ],
                     "title": "Bosnia and Herzegovina",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/IRL",
-                    "statVarKey": [
-                      "sdg/SP_ACS_BSRVH2O"
-                    ],
-                    "title": "Ireland",
                     "type": "LINE"
                   }
                 ]
@@ -643,6 +643,14 @@
                     "type": "LINE"
                   },
                   {
+                    "placeDcidOverride": "country/NRU",
+                    "statVarKey": [
+                      "sdg/SP_ACS_BSRVH2O"
+                    ],
+                    "title": "Nauru",
+                    "type": "LINE"
+                  },
+                  {
                     "placeDcidOverride": "country/CYM",
                     "statVarKey": [
                       "sdg/SP_ACS_BSRVH2O"
@@ -664,14 +672,6 @@
                       "sdg/SP_ACS_BSRVH2O"
                     ],
                     "title": "Ireland",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/BGR",
-                    "statVarKey": [
-                      "sdg/SP_ACS_BSRVH2O"
-                    ],
-                    "title": "Bulgaria",
                     "type": "LINE"
                   }
                 ]
@@ -1016,354 +1016,12 @@
               }
             ],
             "title": "Decrease in Access to basic sanitation services over time (Percent change)"
-          },
-          {
-            "columns": [
-              {
-                "tiles": [
-                  {
-                    "placeDcidOverride": "country/MMR",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Myanmar [Burma]",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/KHM",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Cambodia",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/GMB",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Gambia",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/UZB",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Uzbekistan",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/BFA",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Burkina Faso",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/NPL",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Nepal",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/TZA",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Tanzania",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/GIN",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Guinea",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/NER",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Niger",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/SLE",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Sierra Leone",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/CHN",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "China",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/ETH",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Ethiopia",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/VNM",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Vietnam",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/IND",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "India",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/RWA",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Rwanda",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/TKM",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Turkmenistan",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/UGA",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Uganda",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/AFG",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Afghanistan",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/LAO",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Laos",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/KGZ",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Kyrgyzstan",
-                    "type": "LINE"
-                  }
-                ]
-              }
-            ],
-            "title": "Decrease in Employed population below international poverty line over time (Absolute change)"
-          },
-          {
-            "columns": [
-              {
-                "tiles": [
-                  {
-                    "placeDcidOverride": "country/ALB",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Albania",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/RUS",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Russia",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/URY",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Uruguay",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/CHN",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "China",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/MNG",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Mongolia",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/KGZ",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Kyrgyzstan",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/KAZ",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Kazakhstan",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/TKM",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Turkmenistan",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/MMR",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Myanmar [Burma]",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/BLR",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Belarus",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/LKA",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Sri Lanka",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/CPV",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Cape Verde",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/BTN",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Bhutan",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/VNM",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Vietnam",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/MDV",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Maldives",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/TUN",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Tunisia",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/ARM",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Armenia",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/MAR",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Morocco",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/MDA",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Moldova",
-                    "type": "LINE"
-                  },
-                  {
-                    "placeDcidOverride": "country/THA",
-                    "statVarKey": [
-                      "sdg/SI_POV_EMP1_15GEQ"
-                    ],
-                    "title": "Thailand",
-                    "type": "LINE"
-                  }
-                ]
-              }
-            ],
-            "title": "Decrease in Employed population below international poverty line over time (Percent change)"
           }
         ],
         "statVarSpec": {
           "sdg/SI_POV_DAY1": {
             "name": "Population living below international poverty line",
             "statVar": "sdg/SI_POV_DAY1"
-          },
-          "sdg/SI_POV_EMP1_15GEQ": {
-            "name": "Employed population below international poverty line",
-            "statVar": "sdg/SI_POV_EMP1_15GEQ"
           },
           "sdg/SP_ACS_BSRVH2O": {
             "name": "Access to basic drinking water services",

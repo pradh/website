@@ -78,8 +78,8 @@ def add_chart_to_utterance(chart_type: ChartType, state: PopulateState,
     attr['title_suffix'] = chart_vars.title_suffix
   if chart_vars.orig_sv:
     attr['orig_sv'] = chart_vars.orig_sv
-  if state.has_default_vars:
-    attr['ranking_count'] = 30
+  if chart_vars.ranking_count != None:
+    attr['ranking_count'] = chart_vars.ranking_count
   ch = ChartSpec(chart_type=chart_type,
                  svs=chart_vars.svs,
                  event=chart_vars.event,

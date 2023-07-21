@@ -190,6 +190,9 @@ class Utterance:
   # A subset of `svs` that have passed existence check and haven't been
   # added to the charts.
   extra_success_svs: List[str] = field(default_factory=list)
+  # Whether we are using default configured variables
+  # For example with SIZE.
+  has_default_vars: bool = False
 
 
 #

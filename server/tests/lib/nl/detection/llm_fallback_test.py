@@ -101,7 +101,7 @@ class TestLLMFallback(unittest.TestCase):
                     cleaned_query='size of california',
                     places_detected=_place(),
                     svs_detected=_sv(),
-                    classifications=_nlcl(ClassificationType.SIZE_TYPE)),
+                    classifications=_nlcl(ClassificationType.RANKING)),
           NeedLLM.No,
           ''),
       (

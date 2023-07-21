@@ -50,11 +50,12 @@ class Builder:
     self.prev_block_id = -1
 
     self.ignore_block_id_check = False
-    if (uttr.query_type == QueryType.RANKING_ACROSS_PLACES or
-        uttr.query_type == QueryType.TIME_DELTA_ACROSS_PLACES or
-        uttr.query_type == QueryType.TIME_DELTA_ACROSS_VARS or
-        uttr.query_type == QueryType.FILTER_WITH_SINGLE_VAR or
-        uttr.query_type == QueryType.FILTER_WITH_DUAL_VARS):
+    if (not uttr.has_default_vars and
+        (uttr.query_type == QueryType.RANKING_ACROSS_PLACES or
+         uttr.query_type == QueryType.TIME_DELTA_ACROSS_PLACES or
+         uttr.query_type == QueryType.TIME_DELTA_ACROSS_VARS or
+         uttr.query_type == QueryType.FILTER_WITH_SINGLE_VAR or
+         uttr.query_type == QueryType.FILTER_WITH_DUAL_VARS)):
       self.ignore_block_id_check = True
 
   # Returns a Block and a Column

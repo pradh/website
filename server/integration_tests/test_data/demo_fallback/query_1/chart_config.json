@@ -8,14 +8,54 @@
               {
                 "tiles": [
                   {
-                    "type": "PLACE_OVERVIEW"
+                    "statVarKey": [
+                      "Count_Person"
+                    ],
+                    "title": "Population in San Francisco",
+                    "type": "LINE"
                   }
                 ]
               }
-            ],
-            "title": "San Francisco"
+            ]
+          },
+          {
+            "columns": [
+              {
+                "tiles": [
+                  {
+                    "statVarKey": [
+                      "Count_Household"
+                    ],
+                    "title": "Households in San Francisco",
+                    "type": "LINE"
+                  },
+                  {
+                    "statVarKey": [
+                      "Count_Household_pc"
+                    ],
+                    "title": "Per Capita Households in San Francisco",
+                    "type": "LINE"
+                  }
+                ]
+              }
+            ]
           }
-        ]
+        ],
+        "statVarSpec": {
+          "Count_Household": {
+            "name": "Households",
+            "statVar": "Count_Household"
+          },
+          "Count_Household_pc": {
+            "denom": "Count_Person",
+            "name": "Households",
+            "statVar": "Count_Household"
+          },
+          "Count_Person": {
+            "name": "Population",
+            "statVar": "Count_Person"
+          }
+        }
       }
     ],
     "metadata": {
@@ -34,5 +74,5 @@
   },
   "placeFallback": {},
   "placeSource": "CURRENT_QUERY",
-  "svSource": "UNRECOGNIZED"
+  "svSource": "CURRENT_QUERY"
 }

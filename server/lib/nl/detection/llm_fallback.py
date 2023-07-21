@@ -47,7 +47,7 @@ class NeedLLM(Enum):
 # - Prevalence of Asthma in counties of California with the highest hispanic population
 #   => Because we have detected 2 SVs, and its not correlation/comparison.
 # - Number of shakespeare fans in california
-#   => Because we would not have detected any SV, SIZE_TYPE, OVERVIEW, EVENT
+#   => Because we would not have detected any SV, OVERVIEW, EVENT
 # - Asthma where Obama was born
 #   => Because we would not have detected a Place.
 #
@@ -59,7 +59,7 @@ def need_llm(heuristic: Detection, prev_uttr: Utterance,
   # 1. If there was no SV.
   if _has_no_sv(heuristic, ctr):
 
-    # For OVERVIEW/SIZE_TYPE/EVENT_TYPE classifications, we don't have SVs,
+    # For OVERVIEW/EVENT_TYPE classifications, we don't have SVs,
     # exclude those.
     has_sv_classification = any(cl.type == ClassificationType.OVERVIEW or
                                 cl.type == ClassificationType.EVENT

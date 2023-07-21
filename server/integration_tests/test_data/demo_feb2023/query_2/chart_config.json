@@ -8,18 +8,6 @@
               {
                 "tiles": [
                   {
-                    "title": "Most severe fires in California",
-                    "topEventTileSpec": {
-                      "eventTypeKey": "fire",
-                      "showStartDate": true
-                    },
-                    "type": "TOP_EVENT"
-                  }
-                ]
-              },
-              {
-                "tiles": [
-                  {
                     "disasterEventMapTileSpec": {
                       "pointEventTypeKey": [
                         "fire"
@@ -31,6 +19,7 @@
                 ]
               }
             ],
+            "title": "Fires in California",
             "type": "DISASTER_EVENT"
           }
         ]

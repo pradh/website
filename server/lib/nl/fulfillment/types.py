@@ -38,7 +38,6 @@ class PopulateState:
   time_delta_types: List[TimeDeltaType] = field(default_factory=list)
   quantity: QuantityClassificationAttributes = None
   block_id: int = 0
-  has_default_vars: bool = False
 
 
 # Data structure for configuring the vars that go into a chart.
@@ -69,3 +68,6 @@ class ChartVars:
   # Relevant only when chart_type is RANKED_TIMELINE_COLLECTION
   growth_direction: TimeDeltaType = None
   growth_ranking_type: str = None
+
+  # Max count for ranking charts
+  ranking_count: int = None
