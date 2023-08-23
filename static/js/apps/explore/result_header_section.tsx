@@ -61,7 +61,7 @@ export function ResultHeaderSection(
 
   let placeNameStr = "";
   for (let i = 0; i < props.chartData.places.length; i++) {
-    if (i == 2) {
+    if (i === 2) {
       placeNameStr += " and more";
       break;
     }
