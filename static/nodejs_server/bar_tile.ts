@@ -43,11 +43,7 @@ function getTileProp(
   statVarSpec: StatVarSpec[],
   apiRoot: string
 ): BarTilePropType {
-  const comparisonPlaces = tileConfig.comparisonPlaces
-    ? tileConfig.comparisonPlaces.map((p) =>
-        p == SELF_PLACE_DCID_PLACEHOLDER ? place.dcid : p
-      )
-    : undefined;
+  const comparisonPlaces = getComparisonPlaces(tileConfig, place);
   const barTileSpec = tileConfig.barTileSpec || {};
   return {
     id,

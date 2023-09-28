@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from multiprocessing import Pool, current_process
 import csv
 import glob
 import json
+from multiprocessing import current_process
+from multiprocessing import Pool
 import os
-import requests
-from typing import List
 import time
+from typing import List
+
+import requests
 
 _NPROC = 10
 _IN_PATTERN = 'output_urls/shard_*.txt'
@@ -66,7 +68,7 @@ def gen(fpath: str):
         print(f'Exception accessing {urls[idx]}: {e}')
         idx += 1
         continue
-    
+
       # Checkpoint!
       if idx and idx % 10 == 0:
         end = time.time()
@@ -86,6 +88,7 @@ def main():
 
   pool = Pool(_NPROC)
   pool.map(gen, files)
+
 
 if __name__ == "__main__":
   os.makedirs(_OUT_DIR, exist_ok=True)

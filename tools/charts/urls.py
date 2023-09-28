@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dataclasses import dataclass
 import csv
+from dataclasses import dataclass
 import json
 import os
 from typing import Dict, List, Set
@@ -69,7 +69,8 @@ class UrlMaker:
     self.outdir = outdir
     self._new_file()
 
-  def add(self, place: str, child_type: str, chart_spec: Dict, sv_spec: List[Dict]):
+  def add(self, place: str, child_type: str, chart_spec: Dict,
+          sv_spec: List[Dict]):
     self.fp.write(f'{API_ROOT}?'
                   f'place={place}&'
                   f'config={json.dumps(chart_spec)}&'
@@ -127,8 +128,8 @@ def _sv_spec(vars: List[str], ctx: Context):
   sv_spec = []
   for v in vars[:5]:
     sv_spec.append({
-      'statVar': v,
-      'name': ctx.topic_map.get(v, {}).get('n', v),
+        'statVar': v,
+        'name': ctx.topic_map.get(v, {}).get('n', v),
     })
   return sv_spec
 
@@ -141,15 +142,12 @@ def _map(v: str, title: str, ctx: Context):
   if not vs:
     return
   v = vs[0]
-  config = {
-    'title': title,
-    'type': 'MAP'
-  }
+  config = {'title': title, 'type': 'MAP'}
   ctx.maker.add(ctx.place, ctx.child_type, config, _sv_spec([v], ctx))
 
 
 def _line(vars: List[str], title: str, ctx: Context):
-  vars2 = _exists(vars, ctx, parent=True)  
+  vars2 = _exists(vars, ctx, parent=True)
   if vars2:
     spec = _sv_spec(vars2, ctx)
     config = {
@@ -191,7 +189,7 @@ def _bar(vars: List[str],
     else:
       config['barTileSpec']['sort'] = 'ASCENDING'
     return config
-  
+
   vars2 = _exists(vars, ctx, parent=True)
   if vars2:
     spec = _sv_spec(vars2, ctx)
@@ -336,7 +334,6 @@ def main():
                   topic_map=topic_map,
                   var2places=var2places))
 
-
   topic_map = load_topics(_SDG_TOPIC_CACHE)
   for pl, ct, cpl in [
       ('Earth', 'Country', [
@@ -359,7 +356,8 @@ def main():
 
   url_maker.close()
   print(
-      f'Processed {ntopics} topics and produced {url_maker.total_charts} charts!')
+      f'Processed {ntopics} topics and produced {url_maker.total_charts} charts!'
+  )
 
 
 if __name__ == "__main__":
