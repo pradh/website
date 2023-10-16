@@ -23,9 +23,9 @@ from typing import List
 
 import requests
 
-_NPROC = 10
-_IN_PATTERN = 'output_urls/shard_*.txt'
-_OUT_DIR = 'output_charts'
+_NPROC = 30
+_IN_PATTERN = 'output/urls/shard_*.txt'
+_OUT_DIR = 'output/charts'
 
 
 def _lines(fpath: str, count_only: bool) -> List[str]:
@@ -52,8 +52,13 @@ def gen(fpath: str):
   idx = 0
   if os.path.isfile(newf):
     _, idx = _lines(newf, count_only=True)
-  with open(newf, 'a') as fp:
 
+  if len(urls) - idx <= 30:
+    # Consider this good enough.
+    print(f'Already full')
+    return
+
+  with open(newf, 'a') as fp:
     start = time.time()
     jsons = []
     while idx < len(urls):
@@ -70,7 +75,7 @@ def gen(fpath: str):
         continue
 
       # Checkpoint!
-      if idx and idx % 10 == 0:
+      if idx and idx % 50 == 0:
         end = time.time()
         print(f'{current_process().name}: checkpointing {end - start}')
         for j in jsons:

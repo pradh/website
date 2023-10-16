@@ -20,37 +20,19 @@ from typing import Dict, List, Set
 
 import datacommons as dc
 
-#
-#           |  1-P, 1-V  |  N-P, 1-V  |  1-P, N-V  |  N-P, N-V
-# ----------|------------|------------|------------|-------------
-#  Map      |            |     x      |            |
-#  Gauge    |      x     |            |            |
-#  Higlight |      x     |            |            |
-#  Pie      |            |            |      x     |
-#  Donut    |            |            |      x     |
-#  Line     |      x     |     x      |      x     |     x
-#  Ranking  |            |     x      |            |
-#  V-Bar    |      x     |     x      |      x     |     x
-#  H-Bar    |      x     |     x      |      x     |     x
-#  V-St-Bar |            |            |      x     |     x
-#  H-St-Bar |            |            |      x     |     x
-#  V-Lol    |            |     x      |      x     |     x
-#  H-Lol    |            |     x      |      x     |     x
-#  V-St-Lol |            |            |      x     |     x
-#  H-St-Lol |            |            |      x     |     x
-#
-# Scatter => N-P + 2-V
-#
-
 # Topic Cache JSON
 _TOPIC_CACHE = '../../server/config/nl_page/topic_cache.json'
 _SDG_TOPIC_CACHE = '../../server/config/nl_page/sdg_topic_cache.json'
 
 # Generated charts dir
-_OUT_DIR = 'output_urls'
+_OUT_DIR = 'output/urls'
 
 # Existence file
 _EXISTENCE_FILE = 'var_existence.csv'
+
+# Places file
+_PLACE_FILE = 'places.csv'
+
 
 API_ROOT = 'https://dev.datacommons.org/nodejs/chart-info'
 
@@ -79,7 +61,7 @@ class UrlMaker:
 
     self.total_charts += 1
     self.ncharts += 1
-    if self.ncharts >= 100:
+    if self.ncharts >= 500:
       self._new_file()
 
   def close(self):
@@ -138,7 +120,7 @@ def _sv_spec(vars: List[str], ctx: Context):
 # Helper functions to generate the chart configs.
 #
 def _map(v: str, title: str, ctx: Context):
-  vs = _exists([v], ctx, parent=True)
+  vs = _exists([v], ctx, parent=False)
   if not vs:
     return
   v = vs[0]
@@ -163,10 +145,8 @@ def _line(vars: List[str], title: str, ctx: Context):
     config = {
         'title': title,
         'type': 'LINE',
+        'comparisonPlaces': ctx.child_places
     }
-    ctx.maker.add(ctx.place, ctx.child_type, config, spec)
-
-    config['comparisonPlaces'] = ctx.child_places
     ctx.maker.add(ctx.place, '', config, spec)
 
 
@@ -307,20 +287,20 @@ def main():
         var2places[v] = set()
       var2places[v].add(p)
 
+  places = []
+  with open(_PLACE_FILE) as fp:
+    for row in csv.DictReader(fp):
+      places.append((
+          row['Parent'],
+          row['ChildType'],
+          row['Children'].split(',')
+      ))
+
   url_maker = UrlMaker(_OUT_DIR)
   ntopics = 0
 
   topic_map = load_topics(_TOPIC_CACHE)
-  for pl, ct, cpl in [
-      ('country/USA', 'State',
-       ['geoId/06', 'geoId/36', 'geoId/08', 'geoId/48', 'geoId/27']),
-      ('geoId/06', 'County',
-       ['geoId/06085', 'geoId/06061', 'geoId/06029', 'geoId/06025']),
-      ('Earth', 'Country', [
-          'country/USA', 'country/IND', 'country/IRN', 'country/NGA',
-          'country/BRA'
-      ]),
-  ]:
+  for pl, ct, cpl in places:
     for t in sorted(topic_map.keys()):
       if not _composite(t):
         continue
@@ -335,12 +315,9 @@ def main():
                   var2places=var2places))
 
   topic_map = load_topics(_SDG_TOPIC_CACHE)
-  for pl, ct, cpl in [
-      ('Earth', 'Country', [
-          'country/USA', 'country/IND', 'country/IRN', 'country/NGA',
-          'country/BRA'
-      ]),
-  ]:
+  for pl, ct, cpl in places:
+    if ct != 'Country':
+      continue
     for t in sorted(topic_map.keys()):
       if not _composite(t):
         continue
