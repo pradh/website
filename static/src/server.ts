@@ -196,7 +196,7 @@ function getTileResult(
       return getBarTileResult(
         id,
         tileConfig,
-        place,
+        place.dcid,
         enclosedPlaceType,
         svSpec as any as StatVarSpec[],
         CONFIG.apiRoot,
@@ -270,7 +270,7 @@ function getBlockTileResults(
             getBarTileResult(
               tileId,
               tile,
-              place,
+              place.dcid,
               enclosedPlaceType,
               tileSvSpec,
               CONFIG.apiRoot,
@@ -391,7 +391,7 @@ function getTileChart(
     case "BAR":
       return getBarChart(
         tileConfig,
-        place,
+        place.dcid,
         childPlaceType,
         svSpec,
         CONFIG.apiRoot
@@ -460,7 +460,11 @@ app.get("/nodejs/query", (req: Request, res: Response) => {
   const urlRoot = `${req.protocol}://${req.get("host")}`;
   res.setHeader("Content-Type", "application/json");
   axios
-    .post(`${CONFIG.apiRoot}/api/nl/data?q=${query}&detector=heuristic`, {})
+    // Use "udp=false" to disable using default place.
+    .post(
+      `${CONFIG.apiRoot}/api/nl/data?q=${query}&detector=heuristic&udp=false`,
+      {}
+    )
     .then((resp) => {
       const nlResultTime = process.hrtime.bigint();
       const mainPlace = resp.data["place"] || {};

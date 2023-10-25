@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-FROM gcr.io/datcom-ci/python-node-go-protoc-envoy:2023-08-19
+FROM gcr.io/datcom-ci/python-node-go-protoc-envoy:2023-10-05
 
 ARG ENV
 ENV ENV=${ENV}
@@ -48,6 +48,7 @@ RUN GRPC_HEALTH_PROBE_VERSION=v0.4.7 && \
 # Build binary
 COPY mixer/cmd/ cmd
 COPY mixer/esp/ esp
+ENV CGO_ENABLED=1
 RUN go build -o /go/bin/mixer cmd/main.go
 
 # Flask
@@ -58,25 +59,41 @@ RUN pip install --upgrade setuptools
 # --no-cache-dir removes ~/.cache files, which can be a few GB.
 RUN pip3 install --no-cache-dir -r /workspace/server/requirements.txt
 
-# NPM
-WORKDIR /workspace/static
+# Import Tool
+COPY import/simple/requirements.txt /workspace/import/simple/requirements.txt
+RUN pip3 install --no-cache-dir -r /workspace/import/simple/requirements.txt
+
+# Install website NPM dependencies
+COPY packages/web-components/package.json /workspace/packages/web-components/package.json
+COPY packages/web-components/package-lock.json /workspace/packages/web-components/package-lock.json
+RUN npm --prefix /workspace/packages/web-components install --omit=dev
+
 COPY static/package.json /workspace/static/package.json
 COPY static/package-lock.json /workspace/static/package-lock.json
-RUN npm install --omit=dev
+RUN npm --prefix /workspace/static install --omit=dev
+
+# Install packages NPM depenencies
+COPY packages/. /workspace/packages/
+COPY static/. /workspace/static/
 
 # Build Static Files
-COPY static/. /workspace/static/
+WORKDIR /workspace/static
 RUN npm run-script build
+
+WORKDIR /workspace
 
 # Flask
 COPY server/. /workspace/server/
 COPY shared/. /workspace/shared/
 
+# Import Tool
+COPY import/. /workspace/import/
+
+# Env
 ENV USE_SQLITE=false
 ENV USE_CLOUDSQL=false
 ENV REMOTE_MIXER_DOMAIN=https://api.datacommons.org
 
-WORKDIR /workspace
 COPY build/web_compose/compose.sh .
 EXPOSE 8080 8081
 CMD ./compose.sh

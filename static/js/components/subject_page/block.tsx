@@ -22,6 +22,8 @@ import axios from "axios";
 import React, { useEffect, useRef, useState } from "react";
 import { Input } from "reactstrap";
 
+import { getVariableNameProcessingFn } from "../../../library/utils";
+import { TimeScaleOption } from "../../chart/types";
 import { NL_NUM_BLOCKS_SHOWN } from "../../constants/app/nl_interface_constants";
 import {
   COLUMN_ID_PREFIX,
@@ -54,6 +56,23 @@ import { ScatterTile } from "../tiles/scatter_tile";
 import { Column } from "./column";
 import { StatVarProvider } from "./stat_var_provider";
 
+// Import web components
+import "../../../library";
+
+/**
+ * Translates the line tile's timeScale enum to the TimeScaleOption type
+ */
+function getTimeScaleOption(timeScale?: string): TimeScaleOption | undefined {
+  if (timeScale === "YEAR") {
+    return "year";
+  } else if (timeScale === "MONTH") {
+    return "month";
+  } else if (timeScale === "DAY") {
+    return "day";
+  }
+  return;
+}
+
 // Either provide (place, enclosedPlaceType) or provide (places)
 export interface BlockPropType {
   id: string;
@@ -71,6 +90,8 @@ export interface BlockPropType {
   showExploreMore?: boolean;
   denom?: string;
   startWithDenom?: boolean;
+  // Whether to render tiles as web components
+  showWebComponents?: boolean;
 }
 
 const NO_MAP_TOOL_PLACE_TYPES = new Set(["UNGeoRegion", "GeoRegion"]);
@@ -133,15 +154,27 @@ export function Block(props: BlockPropType): JSX.Element {
                 id={id}
                 config={column}
                 width={columnWidth}
-                tiles={renderTiles(
-                  column.tiles,
-                  props,
-                  id,
-                  minIdxToHide,
-                  overridePlaceTypes,
-                  columnTileClassName,
-                  useDenom ? props.denom : ""
-                )}
+                tiles={
+                  props.showWebComponents
+                    ? renderWebComponents(
+                        column.tiles,
+                        props,
+                        id,
+                        minIdxToHide,
+                        overridePlaceTypes,
+                        columnTileClassName,
+                        useDenom ? props.denom : ""
+                      )
+                    : renderTiles(
+                        column.tiles,
+                        props,
+                        id,
+                        minIdxToHide,
+                        overridePlaceTypes,
+                        columnTileClassName,
+                        useDenom ? props.denom : ""
+                      )
+                }
               />
             );
           })}
@@ -221,6 +254,7 @@ function renderTiles(
             key={id}
             id={id}
             title={tile.title}
+            subtitle={tile.subtitle}
             place={place}
             enclosedPlaceType={enclosedPlaceType}
             statVarSpec={props.statVarProvider.getSpec(
@@ -235,6 +269,8 @@ function renderTiles(
                 (type) => !NO_MAP_TOOL_PLACE_TYPES.has(type)
               )
             }
+            geoJsonProp={tile.mapTileSpec?.geoJsonProp}
+            placeNameProp={tile.placeNameProp}
             parentPlaces={props.parentPlaces}
             allowZoom={true}
             colors={tile.mapTileSpec?.colors}
@@ -247,6 +283,7 @@ function renderTiles(
             key={id}
             id={id}
             title={tile.title}
+            subtitle={tile.subtitle}
             place={place}
             comparisonPlaces={comparisonPlaces}
             statVarSpec={props.statVarProvider.getSpecList(
@@ -259,6 +296,12 @@ function renderTiles(
             showTooltipOnHover={true}
             colors={tile.lineTileSpec?.colors}
             footnote={props.footnote}
+            timeScale={getTimeScaleOption(tile.lineTileSpec?.timeScale)}
+            placeNameProp={tile.placeNameProp}
+            getProcessedSVNameFn={getVariableNameProcessingFn(
+              tile.lineTileSpec?.variableNameRegex,
+              tile.lineTileSpec?.defaultVariableName
+            )}
           />
         );
       case "RANKING":
@@ -267,15 +310,16 @@ function renderTiles(
             key={id}
             id={id}
             title={tile.title}
-            place={place}
+            parentPlace={place.dcid}
             enclosedPlaceType={enclosedPlaceType}
-            statVarSpec={props.statVarProvider.getSpecList(
+            variables={props.statVarProvider.getSpecList(
               tile.statVarKey,
               blockDenom
             )}
             rankingMetadata={tile.rankingTileSpec}
             className={className}
             showExploreMore={props.showExploreMore}
+            hideFooter={tile.hideFooter}
           />
         );
       case "BAR":
@@ -284,7 +328,6 @@ function renderTiles(
             barHeight={tile.barTileSpec?.barHeight}
             colors={tile.barTileSpec?.colors}
             className={className}
-            comparisonPlaces={comparisonPlaces}
             enclosedPlaceType={enclosedPlaceType}
             footnote={props.footnote}
             horizontal={tile.barTileSpec?.horizontal}
@@ -292,20 +335,27 @@ function renderTiles(
             key={id}
             maxPlaces={tile.barTileSpec?.maxPlaces}
             maxVariables={tile.barTileSpec?.maxVariables}
-            place={place}
+            parentPlace={place.dcid}
+            places={comparisonPlaces}
             showExploreMore={props.showExploreMore}
             sort={convertToSortType(tile.barTileSpec?.sort)}
             showTooltipOnHover={true}
             stacked={tile.barTileSpec?.stacked}
-            statVarSpec={props.statVarProvider.getSpecList(
+            subtitle={tile.subtitle}
+            svgChartHeight={props.svgChartHeight}
+            title={tile.title}
+            useLollipop={tile.barTileSpec?.useLollipop}
+            variables={props.statVarProvider.getSpecList(
               tile.statVarKey,
               blockDenom
             )}
-            svgChartHeight={props.svgChartHeight}
-            tileSpec={tile.barTileSpec}
-            title={tile.title}
-            useLollipop={tile.barTileSpec?.useLollipop}
+            xLabelLinkRoot={tile.barTileSpec?.xLabelLinkRoot}
             yAxisMargin={tile.barTileSpec?.yAxisMargin}
+            placeNameProp={tile.placeNameProp}
+            getProcessedSVNameFn={getVariableNameProcessingFn(
+              tile.barTileSpec?.variableNameRegex,
+              tile.barTileSpec?.defaultVariableName
+            )}
           />
         );
       case "SCATTER":
@@ -314,6 +364,7 @@ function renderTiles(
             key={id}
             id={id}
             title={tile.title}
+            subtitle={tile.subtitle}
             place={place}
             enclosedPlaceType={enclosedPlaceType}
             statVarSpec={props.statVarProvider.getSpecList(
@@ -327,6 +378,7 @@ function renderTiles(
             scatterTileSpec={tile.scatterTileSpec}
             showExploreMore={props.showExploreMore}
             footnote={props.footnote}
+            placeNameProp={tile.placeNameProp}
           />
         );
       case "BIVARIATE":
@@ -351,15 +403,21 @@ function renderTiles(
           <GaugeTile
             colors={tile.gaugeTileSpec?.colors}
             footnote={props.footnote}
+            key={id}
             id={id}
             place={place}
-            range={tile.gaugeTileSpec.range}
+            /* "min: 0" value are stripped out when loading text protobufs, so add them back in here */
+            range={{
+              max: tile.gaugeTileSpec.range.max,
+              min: tile.gaugeTileSpec.range.min || 0,
+            }}
             statVarSpec={props.statVarProvider.getSpec(
               tile.statVarKey[0],
               blockDenom
             )}
             svgChartHeight={props.svgChartHeight}
             title={tile.title}
+            subtitle={tile.subtitle}
           ></GaugeTile>
         );
       case "DONUT":
@@ -367,6 +425,7 @@ function renderTiles(
           <DonutTile
             colors={tile.donutTileSpec?.colors}
             footnote={props.footnote}
+            key={`${id}-2`}
             id={id}
             pie={tile.donutTileSpec?.pie}
             place={place}
@@ -376,7 +435,295 @@ function renderTiles(
             )}
             svgChartHeight={props.svgChartHeight}
             title={tile.title}
+            subtitle={tile.subtitle}
           ></DonutTile>
+        );
+      case "DESCRIPTION":
+        return (
+          <p key={id} className="description-tile">
+            {tile.description}
+          </p>
+        );
+      case "PLACE_OVERVIEW":
+        return <PlaceOverviewTile key={id} place={place} />;
+      default:
+        console.log("Tile type not supported:" + tile.type);
+    }
+  });
+  return <>{tilesJsx}</>;
+}
+
+function renderWebComponents(
+  tiles: TileConfig[],
+  props: BlockPropType,
+  columnId: string,
+  minIdxToHide: number,
+  overridePlaces: Record<string, NamedTypedPlace>,
+  tileClassName?: string,
+  blockDenom?: string
+): JSX.Element {
+  if (!tiles || !overridePlaces) {
+    return <></>;
+  }
+  const tilesJsx = tiles.map((tile, i) => {
+    const id = getId(columnId, TILE_ID_PREFIX, i);
+    const enclosedPlaceType = props.enclosedPlaceType;
+    const classNameList = [];
+    if (tileClassName) {
+      classNameList.push(tileClassName);
+    }
+    if (i >= minIdxToHide) {
+      classNameList.push(HIDE_TILE_CLASS);
+    }
+    const place = tile.placeDcidOverride
+      ? overridePlaces[tile.placeDcidOverride]
+      : props.place;
+    const comparisonPlaces = getComparisonPlaces(tile, place);
+    const className = classNameList.join(" ");
+    switch (tile.type) {
+      case "HIGHLIGHT":
+        return (
+          <datacommons-highlight
+            key={id}
+            description={tile.description}
+            place={place.dcid}
+            variable={
+              props.statVarProvider.getSpec(tile.statVarKey[0], blockDenom)
+                .statVar
+            }
+          />
+        );
+      case "MAP":
+        return (
+          <datacommons-map
+            key={id}
+            id={id}
+            header={tile.title}
+            subheader={tile.subtitle}
+            parentPlace={place.dcid}
+            childPlaceType={enclosedPlaceType}
+            variable={
+              props.statVarProvider.getSpec(tile.statVarKey[0], blockDenom)
+                .statVar
+            }
+            className={className}
+            {...(props.showExploreMore &&
+            props.place.types.every(
+              (type) => !NO_MAP_TOOL_PLACE_TYPES.has(type)
+            )
+              ? { showExploreMore: true }
+              : {})}
+            {...(tile.mapTileSpec?.geoJsonProp ? { geoJsonProp: true } : {})}
+            {...(tile.placeNameProp ? { placeNameProp: true } : {})}
+            parentPlaces={props.parentPlaces}
+            allowZoom={true}
+            {...(tile.mapTileSpec?.colors
+              ? { colors: tile.mapTileSpec?.colors.join(" ") }
+              : {})}
+            colors={tile.mapTileSpec?.colors}
+          />
+        );
+      case "LINE":
+        return (
+          <datacommons-line
+            key={id}
+            id={id}
+            header={tile.title}
+            subheader={tile.subtitle}
+            parentPlace={place.dcid}
+            {...(comparisonPlaces
+              ? { places: comparisonPlaces.join(" ") }
+              : {})}
+            variables={props.statVarProvider
+              .getSpecList(tile.statVarKey, blockDenom)
+              .map((sv) => sv.statVar)
+              .join(" ")}
+            className={className}
+            showExploreMore={props.showExploreMore}
+            {...(tile.lineTileSpec?.colors
+              ? { colors: tile.lineTileSpec?.colors.join(" ") }
+              : {})}
+            footnote={props.footnote}
+            timeScale={getTimeScaleOption(tile.lineTileSpec?.timeScale)}
+            placeNameProp={tile.placeNameProp}
+            getProcessedSVNameFn={getVariableNameProcessingFn(
+              tile.lineTileSpec?.variableNameRegex,
+              tile.lineTileSpec?.defaultVariableName
+            )}
+          />
+        );
+      case "RANKING":
+        return (
+          <datacommons-ranking
+            key={id}
+            id={id}
+            header={tile.title}
+            parentPlace={place.dcid}
+            childPlaceType={enclosedPlaceType}
+            variables={props.statVarProvider
+              .getSpecList(tile.statVarKey, blockDenom)
+              .map((sv) => sv.statVar)
+              .join(" ")}
+            {...(tile.rankingTileSpec?.highestTitle
+              ? { highestTitle: true }
+              : {})}
+            {...(tile.rankingTileSpec?.lowestTitle
+              ? { lowestTitle: true }
+              : {})}
+            {...(tile.rankingTileSpec?.rankingCount
+              ? { rankingCount: true }
+              : {})}
+            {...(tile.rankingTileSpec?.showHighestLowest
+              ? { showHighestLowest: true }
+              : {})}
+            {...(tile.rankingTileSpec?.showLowest ? { showLowest: true } : {})}
+            {...(tile.rankingTileSpec?.showHighest
+              ? { showHighest: true }
+              : {})}
+            {...(tile.rankingTileSpec?.showMultiColumn
+              ? { showMultiColumn: true }
+              : {})}
+            className={className}
+            {...(props.showExploreMore ? { showExploreMore: true } : {})}
+            {...(tile.hideFooter ? { hideFooter: true } : {})}
+          />
+        );
+      case "BAR":
+        return (
+          <datacommons-bar
+            {...(tile.barTileSpec?.colors
+              ? { colors: tile.barTileSpec?.colors.join(" ") }
+              : {})}
+            className={className}
+            childPlaceType={enclosedPlaceType}
+            horizontal={tile.barTileSpec?.horizontal}
+            id={id}
+            key={id}
+            {...(tile.barTileSpec?.maxPlaces
+              ? { maxPlaces: tile.barTileSpec?.maxPlaces }
+              : {})}
+            {...(tile.barTileSpec?.maxVariables
+              ? { maxVariables: tile.barTileSpec?.maxVariables }
+              : {})}
+            parentPlace={place.dcid}
+            {...(comparisonPlaces
+              ? { places: comparisonPlaces.join(" ") }
+              : {})}
+            showExploreMore={props.showExploreMore}
+            sort={convertToSortType(tile.barTileSpec?.sort)}
+            {...(tile.barTileSpec?.stacked ? { stacked: true } : {})}
+            subheader={tile.subtitle}
+            header={tile.title}
+            {...(tile.barTileSpec?.useLollipop ? { useLollipop: true } : {})}
+            variables={props.statVarProvider
+              .getSpecList(tile.statVarKey, blockDenom)
+              .map((sv) => sv.statVar)
+              .join(" ")}
+            xLabelLinkRoot={tile.barTileSpec?.xLabelLinkRoot}
+            {...(tile.barTileSpec?.yAxisMargin ? { yAxisMargin: true } : {})}
+            placeNameProp={tile.placeNameProp}
+            {...(tile.barTileSpec?.variableNameRegex
+              ? { variableNameRegex: tile.barTileSpec?.variableNameRegex }
+              : {})}
+            {...(tile.barTileSpec?.defaultVariableName
+              ? { defaultVariableName: tile.barTileSpec?.defaultVariableName }
+              : {})}
+          />
+        );
+      case "SCATTER":
+        return (
+          <datacommons-scatter
+            key={id}
+            id={id}
+            header={tile.title}
+            subheader={tile.subtitle}
+            parentPlace={place.dcid}
+            childPlaceType={enclosedPlaceType}
+            variables={props.statVarProvider
+              .getSpecList(tile.statVarKey, blockDenom)
+              .map((sv) => sv.statVar)
+              .join(" ")}
+            usePerCapita={props.statVarProvider
+              .getSpecList(tile.statVarKey, blockDenom)
+              .map((sv) => (sv.denom ? sv.statVar : ""))
+              .join(" ")}
+            className={className}
+            {...(tile.scatterTileSpec?.highlightBottomLeft
+              ? { highlightBottomLeft: true }
+              : {})}
+            {...(tile.scatterTileSpec?.highlightBottomRight
+              ? { highlightBottomRight: true }
+              : {})}
+            {...(tile.scatterTileSpec?.highlightTopLeft
+              ? { highlightTopLeft: true }
+              : {})}
+            {...(tile.scatterTileSpec?.highlightTopRight
+              ? { highlightTopRight: true }
+              : {})}
+            {...(tile.scatterTileSpec?.showPlaceLabels
+              ? { showPlaceLabels: true }
+              : {})}
+            {...(tile.scatterTileSpec?.showQuadrants
+              ? { showQuadrants: true }
+              : {})}
+            showExploreMore={props.showExploreMore}
+            placeNameProp={tile.placeNameProp}
+          />
+        );
+      case "BIVARIATE":
+        return (
+          <BivariateTile
+            key={id}
+            id={id}
+            title={tile.title}
+            place={place}
+            enclosedPlaceType={enclosedPlaceType}
+            statVarSpec={props.statVarProvider.getSpecList(
+              tile.statVarKey,
+              blockDenom
+            )}
+            svgChartHeight={props.svgChartHeight}
+            className={className}
+            showExploreMore={props.showExploreMore}
+          />
+        );
+      case "GAUGE":
+        return (
+          <datacommons-gauge
+            {...(tile.gaugeTileSpec?.colors
+              ? { colors: tile.gaugeTileSpec?.colors.join(" ") }
+              : {})}
+            key={id}
+            id={id}
+            place={place.dcid}
+            /* "min: 0" value are stripped out when loading text protobufs, so add them back in here */
+            min={tile.gaugeTileSpec?.range.min || 0}
+            max={tile.gaugeTileSpec?.range.max}
+            variable={
+              props.statVarProvider.getSpec(tile.statVarKey[0], blockDenom)
+                .statVar
+            }
+            header={tile.title}
+            subheader={tile.subtitle}
+          />
+        );
+      case "DONUT":
+        return (
+          <datacommons-pie
+            {...(tile.gaugeTileSpec?.colors
+              ? { colors: tile.donutTileSpec?.colors.join(" ") }
+              : {})}
+            key={id}
+            id={id}
+            donut={!tile.donutTileSpec?.pie}
+            place={place.dcid}
+            variables={props.statVarProvider
+              .getSpecList(tile.statVarKey, blockDenom)
+              .map((sv) => sv.statVar)
+              .join(" ")}
+            header={tile.title}
+            subheader={tile.subtitle}
+          />
         );
       case "DESCRIPTION":
         return (

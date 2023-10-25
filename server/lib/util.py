@@ -49,7 +49,7 @@ PLACE_EXPLORER_CATEGORIES = [
 TOPIC_PAGE_CONFIGS = {
     'equity': ['USA', 'US_Places'],
     'poverty': ['USA', 'India'],
-    'dev': ['CA'],
+    'dev': ['CA', 'asia'],
     'sdg': ['sdg']
 }
 
@@ -270,6 +270,14 @@ def get_subject_page_config(filepath):
     subject_page_config = subject_page_pb2.SubjectPageConfig()
     text_format.Parse(data, subject_page_config)
     return subject_page_config
+
+
+# Returns generated summaries for place explorer.
+def get_place_summaries():
+  filepath = os.path.join(get_repo_root(), "config", "summaries",
+                          "place_summaries.json")
+  with open(filepath, 'r') as f:
+    return json.load(f)
 
 
 # Returns topic pages loaded as SubjectPageConfig protos:
