@@ -15,6 +15,7 @@
 import collections
 import json
 import logging
+import time
 
 from flask import Blueprint
 from flask import g
@@ -565,8 +566,18 @@ def get_display_name(dcids):
   Returns:
       A dictionary of display names, keyed by dcid.
   """
+  if len(dcids) > 10:
+    start = time.time()
   place_names = get_i18n_name(dcids)
+  if len(dcids) > 10:
+    end = time.time()
+    logging.info(f'TIME: get_i18n_name for {len(dcids)} => {end - start}s')
+    start = end
   parents = parent_places(dcids)
+  if len(dcids) > 10:
+    end = time.time()
+    logging.info(f'TIME: parent_places for {len(dcids)} => {end - start}s')
+    start = time.time()
   result = {}
   dcid_state_mapping = {}
   for dcid in dcids:
@@ -584,6 +595,9 @@ def get_display_name(dcids):
     state_codes = get_state_code(states_lookup)
   else:
     state_codes = get_i18n_name(list(states_lookup), True)
+  if len(dcids) > 10:
+    end = time.time()
+    logging.info(f'TIME: proc + state-codes for {len(dcids)} => {end - start}s')
   for dcid in dcid_state_mapping.keys():
     state_code = state_codes[dcid_state_mapping[dcid]]
     if state_code:

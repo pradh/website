@@ -15,6 +15,8 @@
 """
 import copy
 import json
+import logging
+import time
 from typing import List
 import urllib.parse
 
@@ -251,7 +253,13 @@ def geojson():
     return lib_util.gzip_compress_response(result, is_json=True)
   geos = []
   if place_dcid and place_type:
+    if place_dcid.startswith('country/'):
+      start = time.time()
     geos = fetch.descendent_places([place_dcid], place_type).get(place_dcid, [])
+    if place_dcid.startswith('country/'):
+      end = time.time()
+      logging.info(
+          f'TIME descendent_places for {len(geos)} took {end - start}s')
   if not geos:
     return Response(json.dumps({}), 200, mimetype='application/json')
   # When fetching geojson data from kg, use the geojson prop at the correct
@@ -263,13 +271,24 @@ def geojson():
   if place_dcid == 'geoId/72':
     geojson_prop = 'geoJsonCoordinatesDP1'
   names_by_geo = {}
+  if len(geos) > 100:
+    start = time.time()
   if place_name_prop:
     names_by_geo = shared.names(geos, place_name_prop)
+    fname = 'shared.names'
   else:
     names_by_geo = place_api.get_display_name(geos)
+    fname = 'place_api.get_display_name'
+  if len(geos) > 100:
+    end = time.time()
+    logging.info(f'TIME {fname} for {len(geos)} took {end - start}s')
+    start = end
   features = []
   if geojson_prop:
     geojson_by_geo = fetch.property_values(geos, geojson_prop)
+    if len(geos) > 100:
+      end = time.time()
+      logging.info(f'TIME {geojson_prop} for {len(geos)} took {end - start}s')
     # geoId/46102 is known to only have unsimplified geojson so need to use
     # geoJsonCoordinates as the prop for this one place
     if 'geoId/46102' in geojson_by_geo:
