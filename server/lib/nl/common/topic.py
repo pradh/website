@@ -13,6 +13,9 @@
 # limitations under the License.
 """Module for NL topics"""
 
+from dataclasses import asdict
+from dataclasses import dataclass
+from enum import Enum
 import time
 from typing import Dict, List
 
@@ -411,6 +414,35 @@ def get_topic_peergroups(sv_dcids: List[str], dc: str = DCNames.MAIN_DC.value):
   return ret
 
 
+class TopicMemberType(str, Enum):
+  SV = 'sv'
+  SVPG = 'svpg'
+  TOPIC = 'topic'
+
+
+@dataclass
+class TopicMember:
+  var: str
+  type: TopicMemberType
+  # Only set for SVPG
+  grp: List[str]
+
+
+def classify_topic_members(topic_vars: List[str], dc: str) -> List[TopicMember]:
+  peer_groups = get_topic_peergroups(topic_vars, dc)
+
+  members = []
+  for v in topic_vars:
+    if utils.is_topic(v):
+      members.append(TopicMember(var=v, type=TopicMemberType.TOPIC, grp=[]))
+    elif peer_groups.get(v):
+      members.append(
+          TopicMember(var=v, type=TopicMemberType.SVPG, grp=peer_groups[v]))
+    else:
+      members.append(TopicMember(var=v, type=TopicMemberType.SV, grp=[]))
+  return members
+
+
 def get_topic_extended_svgs(topic: str, dc: str = DCNames.MAIN_DC.value):
   if 'TOPIC_CACHE' in current_app.config:
     return current_app.config['TOPIC_CACHE'][dc].get_extended_svgs(topic)
@@ -449,13 +481,13 @@ def _get_svpg_vars(svpg: str, dc: str) -> List[str]:
 # Takes a list of ordered vars which may contain SV and topic,
 # opens up "highly ranked" topics into SVs and returns it
 # ordered.
-def open_top_topics_ordered(svs: List[str],
+def open_top_topics_ordered(svs: List[str], dc: str,
                             counters: ctr.Counters) -> List[str]:
   opened_svs = []
   sv_set = set()
   start = time.time()
   for rank, var in enumerate(svs):
-    for sv in _open_topic_in_var(var, rank, counters):
+    for sv in _open_topic_in_var(var, rank, dc, counters):
       if sv not in sv_set:
         opened_svs.append(sv)
         sv_set.add(sv)
@@ -463,33 +495,22 @@ def open_top_topics_ordered(svs: List[str],
   return opened_svs
 
 
-def _open_topic_in_var(sv: str, rank: int, counters: ctr.Counters) -> List[str]:
+def _open_topic_in_var(sv: str, rank: int, dc: str,
+                       counters: ctr.Counters) -> List[str]:
   if utils.is_sv(sv):
     return [sv]
   if utils.is_topic(sv):
-    topic_vars = get_topic_vars_recurive(sv, rank)
-    peer_groups = get_topic_peergroups(topic_vars)
+    topic_vars = get_topic_vars_recurive(sv, rank, dc)
+    members = classify_topic_members(topic_vars, dc)
 
-    # Classify into two lists.
-    just_svs = []
-    svpgs = []
-    for v in topic_vars:
-      if v in peer_groups and peer_groups[v]:
-        title = svpg_name(v)
-        svpgs.append((title, peer_groups[v]))
-      else:
-        just_svs.append(v)
+    svs = []
+    for member in members:
+      if member.type == TopicMemberType.SV:
+        svs.append(member.var)
+      elif member.type == TopicMemberType.SVPG:
+        svs.extend(member.grp)
 
-    svs = just_svs
-    for (title, svpg) in svpgs:
-      svs.extend(svpg)
-
-    counters.info('topics_processed',
-                  {sv: {
-                      'svs': just_svs,
-                      'peer_groups': svpgs,
-                  }})
-
+    counters.info('topics_processed', {sv: [asdict(m) for m in members]})
     return svs
 
   return []

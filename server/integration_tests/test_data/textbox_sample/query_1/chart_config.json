@@ -429,34 +429,6 @@
             ],
             "denom": "Count_Person",
             "title": "Count of Household: Other Family Household"
-          },
-          {
-            "columns": [
-              {
-                "tiles": [
-                  {
-                    "statVarKey": [
-                      "Mean_IncomeDeficit_Household_MarriedCoupleFamilyHousehold"
-                    ],
-                    "title": "Mean Income Deficit of Household: Married Couple Family Household in California",
-                    "type": "LINE"
-                  }
-                ]
-              },
-              {
-                "tiles": [
-                  {
-                    "description": "Mean Income Deficit of Household: Married Couple Family Household in California",
-                    "statVarKey": [
-                      "Mean_IncomeDeficit_Household_MarriedCoupleFamilyHousehold"
-                    ],
-                    "title": "Mean Income Deficit of Household: Married Couple Family Household in California",
-                    "type": "HIGHLIGHT"
-                  }
-                ]
-              }
-            ],
-            "title": "Mean Income Deficit of Household: Married Couple Family Household"
           }
         ],
         "statVarSpec": {
@@ -503,10 +475,6 @@
           "Mean_IncomeDeficit_Household_FamilyHousehold": {
             "name": "Mean Income Deficit of Household: Family Household",
             "statVar": "Mean_IncomeDeficit_Household_FamilyHousehold"
-          },
-          "Mean_IncomeDeficit_Household_MarriedCoupleFamilyHousehold": {
-            "name": "Mean Income Deficit of Household: Married Couple Family Household",
-            "statVar": "Mean_IncomeDeficit_Household_MarriedCoupleFamilyHousehold"
           },
           "Mean_Income_Household": {
             "name": "Average Income for Households",

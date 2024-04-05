@@ -886,28 +886,19 @@
                 "tiles": [
                   {
                     "statVarKey": [
-                      "Count_Person_Divorced"
+                      "Count_Person_Divorced",
+                      "Count_Person_MarriedAndNotSeparated",
+                      "Count_Person_NeverMarried",
+                      "Count_Person_Widowed"
                     ],
-                    "title": "Divorcees in East Carroll Parish",
+                    "title": "Population by Marital Status in East Carroll Parish",
                     "type": "LINE"
-                  }
-                ]
-              },
-              {
-                "tiles": [
-                  {
-                    "description": "Divorcees in East Carroll Parish",
-                    "statVarKey": [
-                      "Count_Person_Divorced"
-                    ],
-                    "title": "Divorcees in East Carroll Parish",
-                    "type": "HIGHLIGHT"
                   }
                 ]
               }
             ],
             "denom": "Count_Person",
-            "title": "Divorcees"
+            "title": "Population by Marital Status"
           },
           {
             "columns": [
@@ -940,26 +931,6 @@
             ],
             "denom": "Count_Person",
             "title": "Divorcees in Cities of East Carroll Parish"
-          },
-          {
-            "columns": [
-              {
-                "tiles": [
-                  {
-                    "statVarKey": [
-                      "Count_Person_Divorced",
-                      "Count_Person_MarriedAndNotSeparated",
-                      "Count_Person_NeverMarried",
-                      "Count_Person_Widowed"
-                    ],
-                    "title": "Population by Marital Status in East Carroll Parish",
-                    "type": "LINE"
-                  }
-                ]
-              }
-            ],
-            "denom": "Count_Person",
-            "title": "Population by Marital Status"
           },
           {
             "columns": [
@@ -1074,12 +1045,75 @@
             ],
             "denom": "Count_Person",
             "title": "Divorced Men in Cities of East Carroll Parish"
+          },
+          {
+            "columns": [
+              {
+                "tiles": [
+                  {
+                    "statVarKey": [
+                      "Count_Person_15OrMoreYears_Divorced_AsianAlone",
+                      "Count_Person_15OrMoreYears_Divorced_BlackOrAfricanAmericanAlone",
+                      "Count_Person_15OrMoreYears_Divorced_HispanicOrLatino"
+                    ],
+                    "title": "Divorced Population by Race in East Carroll Parish",
+                    "type": "LINE"
+                  }
+                ]
+              }
+            ],
+            "denom": "Count_Person",
+            "title": "Divorced Population by Race"
+          },
+          {
+            "columns": [
+              {
+                "tiles": [
+                  {
+                    "statVarKey": [
+                      "Count_Person_15OrMoreYears_Divorced_BlackOrAfricanAmericanAlone"
+                    ],
+                    "title": "Population: 15 Years or More, Divorced, Black or African American Alone in Cities of East Carroll Parish (${date})",
+                    "type": "MAP"
+                  }
+                ]
+              },
+              {
+                "tiles": [
+                  {
+                    "rankingTileSpec": {
+                      "rankingCount": 5,
+                      "showHighestLowest": true
+                    },
+                    "statVarKey": [
+                      "Count_Person_15OrMoreYears_Divorced_BlackOrAfricanAmericanAlone"
+                    ],
+                    "title": "Population: 15 Years or More, Divorced, Black or African American Alone in Cities of East Carroll Parish (${date})",
+                    "type": "RANKING"
+                  }
+                ]
+              }
+            ],
+            "denom": "Count_Person",
+            "title": "Population: 15 Years or More, Divorced, Black or African American Alone in Cities of East Carroll Parish"
           }
         ],
         "statVarSpec": {
           "Count_Person": {
             "name": "Population",
             "statVar": "Count_Person"
+          },
+          "Count_Person_15OrMoreYears_Divorced_AsianAlone": {
+            "name": "Divorced Asian Men",
+            "statVar": "Count_Person_15OrMoreYears_Divorced_AsianAlone"
+          },
+          "Count_Person_15OrMoreYears_Divorced_BlackOrAfricanAmericanAlone": {
+            "name": "Population: 15 Years or More, Divorced, Black or African American Alone",
+            "statVar": "Count_Person_15OrMoreYears_Divorced_BlackOrAfricanAmericanAlone"
+          },
+          "Count_Person_15OrMoreYears_Divorced_HispanicOrLatino": {
+            "name": "Divorced Hispanic Men",
+            "statVar": "Count_Person_15OrMoreYears_Divorced_HispanicOrLatino"
           },
           "Count_Person_18To24Years_multiple_place_bar_block": {
             "name": "Population Aged 18 to 24 Years",
@@ -1610,14 +1644,7 @@
           "Count_Person_HispanicOrLatino",
           "Count_Person_HispanicOrLatino_AmericanIndianAndAlaskaNativeAloneOrInCombinationWithOneOrMoreOtherRaces",
           "Count_Person_HispanicOrLatino_AmericanIndianOrAlaskaNativeAlone",
-          "Count_Person_HispanicOrLatino_AsianAlone",
-          "Count_Person_HispanicOrLatino_AsianAloneOrInCombinationWithOneOrMoreOtherRaces",
-          "Count_Person_HispanicOrLatino_AsianOrPacificIslander",
-          "Count_Person_HispanicOrLatino_BlackOrAfricanAmericanAlone",
-          "Count_Person_HispanicOrLatino_NativeHawaiianAndOtherPacificIslanderAloneOrInCombinationWithOneOrMoreOtherRaces",
-          "Count_Person_HispanicOrLatino_NativeHawaiianOrOtherPacificIslanderAlone",
-          "Count_Person_HispanicOrLatino_TwoOrMoreRaces",
-          "Count_Person_HispanicOrLatino_WhiteAlone"
+          "Count_Person_HispanicOrLatino_AsianAlone"
         ]
       },
       "Count_Person_5OrMoreYears_AfricanLanguagesSpokenAtHome": {

@@ -175,16 +175,21 @@ def _classification_to_query_type(cl: NLClassifier,
         uttr, ClassificationType.CONTAINED_IN)
     query_type = QueryType.BASIC
   elif cl.type == ClassificationType.TIME_DELTA:
-    _maybe_add_containedin(uttr)
-    classification = futils.classifications_of_type_from_utterance(
-        uttr, ClassificationType.CONTAINED_IN)
-    if len(
-        uttr.places) > 1 or (classification and
-                             not classification[0].attributes.had_default_type):
-      # We had multiple places or had place-type that's user-specified.
-      query_type = QueryType.TIME_DELTA_ACROSS_PLACES
+    if detection_utils.has_dual_sv(uttr.detection):
+      # We just happened to detect time-delta words, but this
+      # is really a correlation query!
+      query_type = route_comparison_or_correlation(
+          ClassificationType.CORRELATION, uttr)
     else:
-      query_type = QueryType.TIME_DELTA_ACROSS_VARS
+      _maybe_add_containedin(uttr)
+      classification = futils.classifications_of_type_from_utterance(
+          uttr, ClassificationType.CONTAINED_IN)
+      if len(uttr.places) > 1 or (
+          classification and not classification[0].attributes.had_default_type):
+        # We had multiple places or had place-type that's user-specified.
+        query_type = QueryType.TIME_DELTA_ACROSS_PLACES
+      else:
+        query_type = QueryType.TIME_DELTA_ACROSS_VARS
   elif (cl.type == ClassificationType.COMPARISON or
         cl.type == ClassificationType.CORRELATION):
     query_type = route_comparison_or_correlation(cl.type, uttr)

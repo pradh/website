@@ -20,7 +20,12 @@
                     "type": "RANKING"
                   }
                 ]
-              },
+              }
+            ],
+            "title": "Household Median Income in Counties of California"
+          },
+          {
+            "columns": [
               {
                 "tiles": [
                   {
@@ -37,7 +42,7 @@
                 ]
               }
             ],
-            "title": "Household Median Income and Individual Median Income in Counties of California"
+            "title": "Individual Median Income in Counties of California"
           },
           {
             "columns": [

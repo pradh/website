@@ -522,6 +522,7 @@
                 ]
               }
             ],
+            "denom": "Count_Person",
             "title": "CO2 Emissions, Annual in the World"
           },
           {

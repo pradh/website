@@ -15,6 +15,8 @@
 import copy
 from typing import List
 
+from server.lib.explore.params import DCNames
+from server.lib.explore.params import Params
 from server.lib.nl.common import rank_utils
 from server.lib.nl.common import utils
 from server.lib.nl.common.topic import open_top_topics_ordered
@@ -123,7 +125,9 @@ def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
     return False
 
   # Open topics if necessary.
-  selected_svs = open_top_topics_ordered(selected_svs, state.uttr.counters)
+  dc = state.uttr.insight_ctx.get(Params.DC.value, DCNames.MAIN_DC.value)
+
+  selected_svs = open_top_topics_ordered(selected_svs, dc, state.uttr.counters)
 
   # Perform existence checks.
   selected_svs, _ = utils.sv_existence_for_places(place_dcids, selected_svs,

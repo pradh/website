@@ -217,7 +217,13 @@
                     "type": "MAP"
                   }
                 ]
-              },
+              }
+            ],
+            "footnote": "Includes data from the following sources: WHO/UNICEF joint monitoring programme for water supply, sanitation and hygiene (2023).",
+            "title": "Population Using Basic Drinking Water Services in Countries of Africa"
+          },
+          {
+            "columns": [
               {
                 "tiles": [
                   {
@@ -228,7 +234,13 @@
                     "type": "MAP"
                   }
                 ]
-              },
+              }
+            ],
+            "footnote": "Includes data from the following sources: WHO/UNICEF joint monitoring programme for water supply, sanitation and hygiene (2023).",
+            "title": "Population Using Basic Sanitation Services in Countries of Africa"
+          },
+          {
+            "columns": [
               {
                 "tiles": [
                   {
@@ -241,7 +253,8 @@
                 ]
               }
             ],
-            "title": "Population Below International Poverty Line and More in Countries of Africa"
+            "footnote": "Includes data from the following sources: source = ILO modelled estimates, nov.2022.",
+            "title": "Employed Population Aged 15 or Over Below International Poverty Line in Countries of Africa"
           },
           {
             "columns": [

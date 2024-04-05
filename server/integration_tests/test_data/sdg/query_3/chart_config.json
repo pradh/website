@@ -16,7 +16,12 @@
                     "type": "MAP"
                   }
                 ]
-              },
+              }
+            ],
+            "title": "Deaths Per Capita in the World"
+          },
+          {
+            "columns": [
               {
                 "tiles": [
                   {
@@ -29,7 +34,7 @@
                 ]
               }
             ],
-            "title": "Deaths Per Capita and Life Expectancy in the World"
+            "title": "Life Expectancy in the World"
           },
           {
             "columns": [
@@ -57,44 +62,6 @@
               }
             ],
             "title": "Life Expectancy by Gender in the World"
-          },
-          {
-            "columns": [
-              {
-                "tiles": [
-                  {
-                    "statVarKey": [
-                      "WHO/WHS4_117"
-                    ],
-                    "title": "Hepatitis B (Hepb3) Immunization Coverage Among 1-Year-Olds (%) in the World (${date})",
-                    "type": "MAP"
-                  }
-                ]
-              },
-              {
-                "tiles": [
-                  {
-                    "statVarKey": [
-                      "WHO/WHS4_128"
-                    ],
-                    "title": "Neonates Protected at Birth Against Neonatal Tetanus (Pab) (%) in the World (${date})",
-                    "type": "MAP"
-                  }
-                ]
-              },
-              {
-                "tiles": [
-                  {
-                    "statVarKey": [
-                      "WHO/WHS4_129"
-                    ],
-                    "title": "Hib (Hib3) Immunization Coverage Among 1-Year-Olds (%) in the World (${date})",
-                    "type": "MAP"
-                  }
-                ]
-              }
-            ],
-            "title": "Hepatitis B (Hepb3) Immunization Coverage Among 1-Year-Olds (%) and More in the World"
           },
           {
             "columns": [
@@ -151,6 +118,54 @@
                 "tiles": [
                   {
                     "statVarKey": [
+                      "WHO/WHS4_117"
+                    ],
+                    "title": "Hepatitis B (Hepb3) Immunization Coverage Among 1-Year-Olds (%) in the World (${date})",
+                    "type": "MAP"
+                  }
+                ]
+              }
+            ],
+            "title": "Hepatitis B (Hepb3) Immunization Coverage Among 1-Year-Olds (%) in the World"
+          },
+          {
+            "columns": [
+              {
+                "tiles": [
+                  {
+                    "statVarKey": [
+                      "WHO/WHS4_128"
+                    ],
+                    "title": "Neonates Protected at Birth Against Neonatal Tetanus (Pab) (%) in the World (${date})",
+                    "type": "MAP"
+                  }
+                ]
+              }
+            ],
+            "title": "Neonates Protected at Birth Against Neonatal Tetanus (Pab) (%) in the World"
+          },
+          {
+            "columns": [
+              {
+                "tiles": [
+                  {
+                    "statVarKey": [
+                      "WHO/WHS4_129"
+                    ],
+                    "title": "Hib (Hib3) Immunization Coverage Among 1-Year-Olds (%) in the World (${date})",
+                    "type": "MAP"
+                  }
+                ]
+              }
+            ],
+            "title": "Hib (Hib3) Immunization Coverage Among 1-Year-Olds (%) in the World"
+          },
+          {
+            "columns": [
+              {
+                "tiles": [
+                  {
+                    "statVarKey": [
                       "WHO/WHS4_543"
                     ],
                     "title": "Bcg Immunization Coverage Among 1-Year-Olds (%) in the World (${date})",
@@ -159,34 +174,7 @@
                 ]
               }
             ],
-            "title": "Hepatitis B (Hepb3) Immunization Coverage Among 1-Year-Olds (%) and More in the World"
-          },
-          {
-            "columns": [
-              {
-                "tiles": [
-                  {
-                    "statVarKey": [
-                      "WHO/MORT_MATERNALNUM"
-                    ],
-                    "title": "Number of Maternal Deaths in the World (${date})",
-                    "type": "MAP"
-                  }
-                ]
-              },
-              {
-                "tiles": [
-                  {
-                    "statVarKey": [
-                      "sdg/SH_STA_MORT.SEX--F"
-                    ],
-                    "title": "Maternal Mortality Ratio in the World (${date})",
-                    "type": "MAP"
-                  }
-                ]
-              }
-            ],
-            "title": "Number of Maternal Deaths and Maternal Mortality Ratio in the World"
+            "title": "Bcg Immunization Coverage Among 1-Year-Olds (%) in the World"
           },
           {
             "columns": [
@@ -439,6 +427,39 @@
               }
             ],
             "title": "Disability-Adjusted Life-Years in the World"
+          },
+          {
+            "columns": [
+              {
+                "tiles": [
+                  {
+                    "statVarKey": [
+                      "WHO/MORT_MATERNALNUM"
+                    ],
+                    "title": "Number of Maternal Deaths in the World (${date})",
+                    "type": "MAP"
+                  }
+                ]
+              }
+            ],
+            "title": "Number of Maternal Deaths in the World"
+          },
+          {
+            "columns": [
+              {
+                "tiles": [
+                  {
+                    "statVarKey": [
+                      "sdg/SH_STA_MORT.SEX--F"
+                    ],
+                    "title": "Maternal Mortality Ratio in the World (${date})",
+                    "type": "MAP"
+                  }
+                ]
+              }
+            ],
+            "footnote": "Includes data from the following sources: estimates by WHO, UNICEF, UNFPA, world bank group and UNDESA/Population division. Geneva: world health organization; 2023.",
+            "title": "Maternal Mortality Ratio in the World"
           },
           {
             "columns": [

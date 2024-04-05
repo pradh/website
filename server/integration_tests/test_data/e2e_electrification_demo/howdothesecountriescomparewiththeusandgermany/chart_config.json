@@ -189,6 +189,40 @@
                       "sort": "DESCENDING"
                     },
                     "comparisonPlaces": [
+                      "country/ETH",
+                      "country/MAR",
+                      "country/KEN",
+                      "country/GHA",
+                      "country/UGA",
+                      "country/GIN",
+                      "country/SEN",
+                      "country/MLI",
+                      "country/RWA"
+                    ],
+                    "statVarKey": [
+                      "sdg/EN_ATM_GHGT_NAIP_multiple_place_bar_block"
+                    ],
+                    "title": "Total Greenhouse Gas Emissions Without LULUCF for non-Annex I Parties (${date})",
+                    "type": "BAR"
+                  }
+                ]
+              }
+            ],
+            "footnote": "Includes data from the following sources: UNFCCC.",
+            "infoMessage": "Data for \"United States, Germany and Somalia\" is currently unavailable. See the following statistics on the other places.",
+            "title": "Total Greenhouse Gas Emissions Without LULUCF for non-Annex I Parties"
+          },
+          {
+            "columns": [
+              {
+                "tiles": [
+                  {
+                    "barTileSpec": {
+                      "maxPlaces": 15,
+                      "maxVariables": 15,
+                      "sort": "DESCENDING"
+                    },
+                    "comparisonPlaces": [
                       "country/USA",
                       "country/DEU",
                       "country/ETH",
@@ -492,42 +526,6 @@
             ],
             "denom": "Count_Person",
             "title": "Annual Amount of Emissions: Other Manufacturing, Carbon Dioxide"
-          },
-          {
-            "columns": [
-              {
-                "tiles": [
-                  {
-                    "barTileSpec": {
-                      "maxPlaces": 15,
-                      "maxVariables": 15,
-                      "sort": "DESCENDING"
-                    },
-                    "comparisonPlaces": [
-                      "country/USA",
-                      "country/DEU",
-                      "country/ETH",
-                      "country/MAR",
-                      "country/KEN",
-                      "country/GHA",
-                      "country/UGA",
-                      "country/GIN",
-                      "country/SEN",
-                      "country/MLI",
-                      "country/RWA",
-                      "country/SOM"
-                    ],
-                    "statVarKey": [
-                      "Annual_Emissions_Methane_Power_multiple_place_bar_block"
-                    ],
-                    "title": "Annual Amount of Emissions: Power, Methane (${date})",
-                    "type": "BAR"
-                  }
-                ]
-              }
-            ],
-            "denom": "Count_Person",
-            "title": "Annual Amount of Emissions: Power, Methane"
           }
         ],
         "statVarSpec": {
@@ -627,13 +625,13 @@
             "name": "Annual Amount of Emissions: Other Energy Use, Methane",
             "statVar": "Annual_Emissions_Methane_ClimateTrace_OtherEnergyUse"
           },
-          "Annual_Emissions_Methane_Power_multiple_place_bar_block": {
-            "name": "Annual Amount of Emissions: Power, Methane",
-            "statVar": "Annual_Emissions_Methane_Power"
-          },
           "sdg/EN_ATM_GHGT_AIP_multiple_place_bar_block": {
             "name": "Total greenhouse gas emissions without LULUCF for Annex I Parties",
             "statVar": "sdg/EN_ATM_GHGT_AIP"
+          },
+          "sdg/EN_ATM_GHGT_NAIP_multiple_place_bar_block": {
+            "name": "Total greenhouse gas emissions without LULUCF for non-Annex I Parties",
+            "statVar": "sdg/EN_ATM_GHGT_NAIP"
           }
         }
       }

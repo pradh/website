@@ -62,62 +62,6 @@
                 "tiles": [
                   {
                     "statVarKey": [
-                      "Percent_Person_WithAsthma"
-                    ],
-                    "title": "Asthma in Placer County",
-                    "type": "LINE"
-                  }
-                ]
-              },
-              {
-                "tiles": [
-                  {
-                    "description": "Asthma in Placer County",
-                    "statVarKey": [
-                      "Percent_Person_WithAsthma"
-                    ],
-                    "title": "Asthma in Placer County",
-                    "type": "HIGHLIGHT"
-                  }
-                ]
-              }
-            ],
-            "title": "Asthma"
-          },
-          {
-            "columns": [
-              {
-                "tiles": [
-                  {
-                    "statVarKey": [
-                      "Percent_Person_WithHighBloodPressure"
-                    ],
-                    "title": "High Blood Pressure in Placer County",
-                    "type": "LINE"
-                  }
-                ]
-              },
-              {
-                "tiles": [
-                  {
-                    "description": "High Blood Pressure in Placer County",
-                    "statVarKey": [
-                      "Percent_Person_WithHighBloodPressure"
-                    ],
-                    "title": "High Blood Pressure in Placer County",
-                    "type": "HIGHLIGHT"
-                  }
-                ]
-              }
-            ],
-            "title": "High Blood Pressure"
-          },
-          {
-            "columns": [
-              {
-                "tiles": [
-                  {
-                    "statVarKey": [
                       "Percent_Person_18OrMoreYears_WithHighBloodPressure_ReceivedTakingBloodPressureMedication"
                     ],
                     "title": "Percent of Adults With Blood Pressure Who Take Medication in Placer County",
@@ -139,34 +83,6 @@
               }
             ],
             "title": "Percent of Adults With Blood Pressure Who Take Medication"
-          },
-          {
-            "columns": [
-              {
-                "tiles": [
-                  {
-                    "statVarKey": [
-                      "Percent_Person_WithCancerExcludingSkinCancer"
-                    ],
-                    "title": "Cancer (Excluding Skin Cancer) in Placer County",
-                    "type": "LINE"
-                  }
-                ]
-              },
-              {
-                "tiles": [
-                  {
-                    "description": "Cancer (Excluding Skin Cancer) in Placer County",
-                    "statVarKey": [
-                      "Percent_Person_WithCancerExcludingSkinCancer"
-                    ],
-                    "title": "Cancer (Excluding Skin Cancer) in Placer County",
-                    "type": "HIGHLIGHT"
-                  }
-                ]
-              }
-            ],
-            "title": "Cancer (Excluding Skin Cancer)"
           },
           {
             "columns": [
@@ -259,34 +175,6 @@
                 "tiles": [
                   {
                     "statVarKey": [
-                      "Percent_Person_WithHighCholesterol"
-                    ],
-                    "title": "High Cholesterol in Placer County",
-                    "type": "LINE"
-                  }
-                ]
-              },
-              {
-                "tiles": [
-                  {
-                    "description": "High Cholesterol in Placer County",
-                    "statVarKey": [
-                      "Percent_Person_WithHighCholesterol"
-                    ],
-                    "title": "High Cholesterol in Placer County",
-                    "type": "HIGHLIGHT"
-                  }
-                ]
-              }
-            ],
-            "title": "High Cholesterol"
-          },
-          {
-            "columns": [
-              {
-                "tiles": [
-                  {
-                    "statVarKey": [
                       "Percent_Person_ReceivedCholesterolScreening"
                     ],
                     "title": "Prevalence: Cholesterol Screening in Placer County",
@@ -308,34 +196,6 @@
               }
             ],
             "title": "Prevalence: Cholesterol Screening"
-          },
-          {
-            "columns": [
-              {
-                "tiles": [
-                  {
-                    "statVarKey": [
-                      "Percent_Person_WithMentalHealthNotGood"
-                    ],
-                    "title": "Mental Health Issues in Placer County",
-                    "type": "LINE"
-                  }
-                ]
-              },
-              {
-                "tiles": [
-                  {
-                    "description": "Mental Health Issues in Placer County",
-                    "statVarKey": [
-                      "Percent_Person_WithMentalHealthNotGood"
-                    ],
-                    "title": "Mental Health Issues in Placer County",
-                    "type": "HIGHLIGHT"
-                  }
-                ]
-              }
-            ],
-            "title": "Mental Health Issues"
           },
           {
             "columns": [
@@ -559,63 +419,6 @@
             ],
             "denom": "Count_Person",
             "title": "Population With Health Insurance"
-          },
-          {
-            "columns": [
-              {
-                "tiles": [
-                  {
-                    "statVarKey": [
-                      "Count_Person_NoHealthInsurance"
-                    ],
-                    "title": "Population Without Health Insurance in Placer County",
-                    "type": "LINE"
-                  }
-                ]
-              },
-              {
-                "tiles": [
-                  {
-                    "description": "Population Without Health Insurance in Placer County",
-                    "statVarKey": [
-                      "Count_Person_NoHealthInsurance"
-                    ],
-                    "title": "Population Without Health Insurance in Placer County",
-                    "type": "HIGHLIGHT"
-                  }
-                ]
-              }
-            ],
-            "denom": "Count_Person",
-            "title": "Population Without Health Insurance"
-          },
-          {
-            "columns": [
-              {
-                "tiles": [
-                  {
-                    "barTileSpec": {
-                      "maxPlaces": 15,
-                      "maxVariables": 15,
-                      "sort": "DESCENDING"
-                    },
-                    "comparisonPlaces": [
-                      "geoId/06061"
-                    ],
-                    "statVarKey": [
-                      "Count_Person_WithPrivateHealthInsurance_multiple_place_bar_block",
-                      "Count_Person_WithPrivateHealthInsuranceOnly_multiple_place_bar_block",
-                      "Count_Person_WithPublicHealthInsurance_multiple_place_bar_block",
-                      "Count_Person_WithPublicHealthInsuranceOnly_multiple_place_bar_block"
-                    ],
-                    "title": "Type of Health Insurance Coverage in Placer County (${date})",
-                    "type": "BAR"
-                  }
-                ]
-              }
-            ],
-            "denom": "Count_Person",
-            "title": "Type of Health Insurance Coverage"
           }
         ],
         "statVarSpec": {
@@ -679,10 +482,6 @@
             "name": "Men With Health Insurance",
             "statVar": "Count_Person_Male_WithHealthInsurance"
           },
-          "Count_Person_NoHealthInsurance": {
-            "name": "Population Without Health Insurance",
-            "statVar": "Count_Person_NoHealthInsurance"
-          },
           "Count_Person_WithDisability_AmericanIndianOrAlaskaNativeAlone_multiple_place_bar_block": {
             "name": "American Indian/Alaska Natives With Disabilities",
             "statVar": "Count_Person_WithDisability_AmericanIndianOrAlaskaNativeAlone"
@@ -727,22 +526,6 @@
             "name": "Population With Health Insurance",
             "statVar": "Count_Person_WithHealthInsurance"
           },
-          "Count_Person_WithPrivateHealthInsuranceOnly_multiple_place_bar_block": {
-            "name": "People With Only Private Health Insurance",
-            "statVar": "Count_Person_WithPrivateHealthInsuranceOnly"
-          },
-          "Count_Person_WithPrivateHealthInsurance_multiple_place_bar_block": {
-            "name": "People With Private Health Insurance",
-            "statVar": "Count_Person_WithPrivateHealthInsurance"
-          },
-          "Count_Person_WithPublicHealthInsuranceOnly_multiple_place_bar_block": {
-            "name": "People With Only Public Health Insurance",
-            "statVar": "Count_Person_WithPublicHealthInsuranceOnly"
-          },
-          "Count_Person_WithPublicHealthInsurance_multiple_place_bar_block": {
-            "name": "People With Public Health Insurance",
-            "statVar": "Count_Person_WithPublicHealthInsurance"
-          },
           "Percent_Person_18OrMoreYears_WithDepression": {
             "name": "Depression",
             "statVar": "Percent_Person_18OrMoreYears_WithDepression",
@@ -783,19 +566,9 @@
             "statVar": "Percent_Person_WithArthritis",
             "unit": "%"
           },
-          "Percent_Person_WithAsthma": {
-            "name": "Asthma",
-            "statVar": "Percent_Person_WithAsthma",
-            "unit": "%"
-          },
           "Percent_Person_WithAsthma_multiple_place_bar_block": {
             "name": "Asthma",
             "statVar": "Percent_Person_WithAsthma",
-            "unit": "%"
-          },
-          "Percent_Person_WithCancerExcludingSkinCancer": {
-            "name": "Cancer (excluding skin cancer)",
-            "statVar": "Percent_Person_WithCancerExcludingSkinCancer",
             "unit": "%"
           },
           "Percent_Person_WithCancerExcludingSkinCancer_multiple_place_bar_block": {
@@ -823,29 +596,14 @@
             "statVar": "Percent_Person_WithDiabetes",
             "unit": "%"
           },
-          "Percent_Person_WithHighBloodPressure": {
-            "name": "High Blood Pressure",
-            "statVar": "Percent_Person_WithHighBloodPressure",
-            "unit": "%"
-          },
           "Percent_Person_WithHighBloodPressure_multiple_place_bar_block": {
             "name": "High Blood Pressure",
             "statVar": "Percent_Person_WithHighBloodPressure",
             "unit": "%"
           },
-          "Percent_Person_WithHighCholesterol": {
-            "name": "High Cholesterol",
-            "statVar": "Percent_Person_WithHighCholesterol",
-            "unit": "%"
-          },
           "Percent_Person_WithHighCholesterol_multiple_place_bar_block": {
             "name": "High Cholesterol",
             "statVar": "Percent_Person_WithHighCholesterol",
-            "unit": "%"
-          },
-          "Percent_Person_WithMentalHealthNotGood": {
-            "name": "Mental Health Issues",
-            "statVar": "Percent_Person_WithMentalHealthNotGood",
             "unit": "%"
           },
           "Percent_Person_WithMentalHealthNotGood_multiple_place_bar_block": {

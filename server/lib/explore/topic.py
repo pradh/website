@@ -14,7 +14,7 @@
 """Module for topic expansion"""
 
 from collections import OrderedDict
-from dataclasses import dataclass
+from dataclasses import asdict
 import time
 from typing import List
 
@@ -22,6 +22,7 @@ from server.lib.explore.params import DCNames
 from server.lib.explore.params import is_sdg
 from server.lib.explore.params import is_special_dc
 from server.lib.explore.params import Params
+from server.lib.nl.common.topic import TopicMemberType
 import server.lib.nl.common.topic as topic
 import server.lib.nl.common.utils as cutils
 import server.lib.nl.fulfillment.types as ftypes
@@ -41,13 +42,6 @@ _MAX_SUBTOPIC_SV_LIMIT_SDG = 500
 _MAX_TOPICS_TO_OPEN_SPECIAL_DC = 10
 _MAX_SUBTOPIC_SV_LIMIT_SPECIAL_DC = 100
 _MAX_SVS_TO_PROCESS_SPECIAL_DC = 500
-
-
-@dataclass
-class TopicMembers:
-  svs: List[str]
-  svpgs: List[str]
-  topics: List[str]
 
 
 def compute_chart_vars(
@@ -177,18 +171,15 @@ def _open_topic_lite(state: ftypes.PopulateState,
     assert lvl < 2, "Must never recurse past 2 levels"
     topic_vars = topic.get_topic_vars_recurive(sv, rank=0, dc=dc, max_svs=1)
 
-  members = _classify_topic_members(topic_vars, dc)
-
-  if members.svs or members.svpgs:
-    ret_svs.extend(members.svs)
-    for (_, svs) in members.svpgs:
-      ret_svs.extend(svs)
-    if len(ret_svs) >= _MAX_CORRELATION_SVS_PER_TOPIC:
-      return
-
-  # We need to open up topics.
-  for t in members.topics:
-    _open_topic_lite(state, t, dc, ret_svs, lvl + 1)
+  members = topic.classify_topic_members(topic_vars, dc)
+  for member in members:
+    if member.type == TopicMemberType.SV:
+      ret_svs.append(member.var)
+    elif member.type == TopicMemberType.SVPG:
+      ret_svs.extend(member.grp)
+    else:
+      assert member.type == TopicMemberType.TOPIC
+      _open_topic_lite(state, member.var, dc, ret_svs, lvl + 1)
     if len(ret_svs) >= _MAX_CORRELATION_SVS_PER_TOPIC:
       return
 
@@ -215,74 +206,34 @@ def _topic_chart_vars(state: ftypes.PopulateState,
         sv, rank=0, dc=dc, max_svs=_max_subtopic_sv_limit(state))
 
   # Classify the members into `TopicMembers` struct.
-  topic_members = _classify_topic_members(topic_vars, dc)
+  members = topic.classify_topic_members(topic_vars, dc)
 
   charts = []
-
-  # First produce charts for SVs and SVPGs.
-  if topic_members.svs or topic_members.svpgs:
-    charts.extend(
-        _direct_chart_vars(svs=topic_members.svs,
-                           svpgs=topic_members.svpgs,
-                           source_topic=source_topic,
-                           orig_sv=orig_sv))
-
-  # Recurse into immediate sub-topics.
-  for t in topic_members.topics:
-    charts.extend(
-        _topic_chart_vars(state=state,
-                          sv=t,
-                          source_topic=t,
-                          orig_sv=orig_sv,
-                          lvl=lvl + 1,
-                          dc=dc))
-
-  state.uttr.counters.info(
-      'topics_processed', {
-          sv: {
-              'svs': topic_members.svs,
-              'peer_groups': topic_members.svpgs,
-              'sub_topics': topic_members.topics,
-          }
-      })
-  return charts
-
-
-def _classify_topic_members(topic_vars: List[str], dc: str) -> TopicMembers:
-  peer_groups = topic.get_topic_peergroups(topic_vars, dc)
-
-  just_svs = []
-  svpgs = []
-  sub_topics = []
-  for v in topic_vars:
-    if cutils.is_topic(v):
-      sub_topics.append(v)
-    elif peer_groups.get(v):
-      svpgs.append((v, peer_groups[v]))
+  for member in members:
+    if member.type == TopicMemberType.SV:
+      charts.append(
+          ftypes.ChartVars(svs=[member.var],
+                           orig_sv_map={orig_sv: [member.var]},
+                           source_topic=source_topic))
+    elif member.type == TopicMemberType.SVPG:
+      charts.append(
+          ftypes.ChartVars(svs=member.grp,
+                           is_topic_peer_group=True,
+                           svpg_id=member.var,
+                           orig_sv_map={orig_sv: member.grp},
+                           source_topic=source_topic))
     else:
-      just_svs.append(v)
-  return TopicMembers(svs=just_svs, svpgs=svpgs, topics=sub_topics)
+      assert member.type == TopicMemberType.TOPIC
+      charts.extend(
+          _topic_chart_vars(state=state,
+                            sv=member.var,
+                            source_topic=member.var,
+                            orig_sv=orig_sv,
+                            lvl=lvl + 1,
+                            dc=dc))
 
-
-def _direct_chart_vars(svs: List[str], svpgs: List[str], source_topic: str,
-                       orig_sv: str) -> ftypes.ChartVars:
-  # We need a category called overview.
-  # 1. Make a block for all SVs in just_svs
-  charts = [
-      ftypes.ChartVars(svs=svs,
-                       orig_sv_map={orig_sv: svs},
-                       source_topic=source_topic)
-  ]
-
-  # 2. Make a block for every peer-group in svpgs
-  for (svpg, svs) in svpgs:
-    charts.append(
-        ftypes.ChartVars(svs=svs,
-                         is_topic_peer_group=True,
-                         svpg_id=svpg,
-                         orig_sv_map={orig_sv: svs},
-                         source_topic=source_topic))
-
+  state.uttr.counters.info('topics_processed',
+                           {sv: [asdict(m) for m in members]})
   return charts
 
 

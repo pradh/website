@@ -132,32 +132,6 @@
                       "country/PAK"
                     ],
                     "statVarKey": [
-                      "sdg/SD_MDP_MUHC_multiple_place_bar_block"
-                    ],
-                    "title": "Proportion of Population Living in Multidimensional Poverty (${date})",
-                    "type": "BAR"
-                  }
-                ]
-              }
-            ],
-            "footnote": "Includes data from the following sources: burundi institute of statistics and economic studies; CONEVAL (Consejo nacional de evaluaci\u00f3n de la pol\u00edtica de desarrollo social); cities, towns and suburbs, rural areas; DANE; department of census and statistics; EUROSTAT; eurostat; ghana statistical service; institut national de la statistique (INSTAT); instituto nacional de estad\u00edstica (INE); instituto nacional de estat\u00edstica; la direcci\u00f3n general de estad\u00edstica y censos; la direction generale du pla...1119 more chars",
-            "title": "Proportion of Population Living in Multidimensional Poverty"
-          },
-          {
-            "columns": [
-              {
-                "tiles": [
-                  {
-                    "barTileSpec": {
-                      "maxPlaces": 15,
-                      "maxVariables": 15
-                    },
-                    "comparisonPlaces": [
-                      "country/MEX",
-                      "country/NGA",
-                      "country/PAK"
-                    ],
-                    "statVarKey": [
                       "sdg/SI_POV_NAHC_multiple_place_bar_block"
                     ],
                     "title": "Proportion of Population Living Below the National Poverty Line (${date})",
@@ -194,6 +168,32 @@
               }
             ],
             "title": "Average Proportion of Deprivations for People Multidimensionally Poor (%)"
+          },
+          {
+            "columns": [
+              {
+                "tiles": [
+                  {
+                    "barTileSpec": {
+                      "maxPlaces": 15,
+                      "maxVariables": 15
+                    },
+                    "comparisonPlaces": [
+                      "country/MEX",
+                      "country/NGA",
+                      "country/PAK"
+                    ],
+                    "statVarKey": [
+                      "sdg/SD_MDP_MUHC_multiple_place_bar_block"
+                    ],
+                    "title": "Proportion of Population Living in Multidimensional Poverty (${date})",
+                    "type": "BAR"
+                  }
+                ]
+              }
+            ],
+            "footnote": "Includes data from the following sources: burundi institute of statistics and economic studies; CONEVAL (Consejo nacional de evaluaci\u00f3n de la pol\u00edtica de desarrollo social); cities, towns and suburbs, rural areas; DANE; department of census and statistics; EUROSTAT; eurostat; ghana statistical service; institut national de la statistique (INSTAT); instituto nacional de estad\u00edstica (INE); instituto nacional de estat\u00edstica; la direcci\u00f3n general de estad\u00edstica y censos; la direction generale du pla...1119 more chars",
+            "title": "Proportion of Population Living in Multidimensional Poverty"
           },
           {
             "columns": [
