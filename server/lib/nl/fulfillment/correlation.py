@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import copy
-import time
 from typing import List
 
 import server.lib.nl.common.existence_util as exist
@@ -33,11 +32,11 @@ from server.lib.nl.fulfillment.utils import is_coplottable
 # Handler for correlation charts.
 #
 def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
-             chart_origin: ChartOriginType, rank: int) -> bool:
+             chart_origin: ChartOriginType, rank: int) -> int:
   # Correlation handling only works for 2 SVs, and with places.
   if len(chart_vars.svs) != 2 or not places:
     state.uttr.counters.err('correlation_failed_noplaceorsv', 1)
-    return False
+    return 0
 
   # If there is a child-type and existence passes, we'll try to plot a SCATTER chart.
   if (state.place_type and
@@ -50,11 +49,11 @@ def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
     return _simple(state, chart_vars, places, chart_origin, rank)
 
   state.uttr.counters.err('correlation_existence_failed', 1)
-  return False
+  return 0
 
 
 def _scatter(state: PopulateState, chart_vars: ChartVars, places: List[Place],
-             chart_origin: ChartOriginType, rank: int) -> bool:
+             chart_origin: ChartOriginType, rank: int) -> int:
 
   sv_place_latest_date = exist.get_sv_place_latest_date(chart_vars.svs, places,
                                                         state.place_type,
@@ -65,18 +64,21 @@ def _scatter(state: PopulateState, chart_vars: ChartVars, places: List[Place],
                                  places,
                                  chart_origin,
                                  sv_place_latest_date=sv_place_latest_date)
+  added = 0
   if found:
+    added = 1
     ranking_orig = state.ranking_types
     state.ranking_types = [RankingType.HIGH, RankingType.LOW]
-    found |= ranking_across_places.populate(state,
-                                            chart_vars,
-                                            places,
-                                            chart_origin,
-                                            rank,
-                                            ranking_count=5)
+    if ranking_across_places.populate(state,
+                                      chart_vars,
+                                      places,
+                                      chart_origin,
+                                      rank,
+                                      ranking_count=5):
+      added += 1
     state.ranking_types = ranking_orig
 
-  return found
+  return added
 
 
 def _simple(state: PopulateState, chart_vars: ChartVars, places: List[Place],
@@ -84,7 +86,7 @@ def _simple(state: PopulateState, chart_vars: ChartVars, places: List[Place],
   if not is_coplottable(chart_vars.svs, places, state.exist_checks):
     # TODO: This should eventually be a User Message
     state.uttr.counters.err('correlation_coplottable_failed', chart_vars.svs)
-    return False
+    return 0
 
   cv = copy.deepcopy(chart_vars)
   # Set this so that `simple` will plot the SVs in a single chart.

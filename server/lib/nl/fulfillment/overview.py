@@ -23,12 +23,12 @@ from server.lib.nl.fulfillment.utils import add_chart_to_utterance
 # A simple fulfiller to add a PLACE_OVERVIEW chart by finding places in context.
 
 
-def populate(uttr: Utterance) -> bool:
+def populate(uttr: Utterance) -> int:
   if uttr.places:
     _add_place_overview(uttr.places[0], uttr)
-    return True
+    return 1
   uttr.counters.err('overview_failed_noplaces', 1)
-  return False
+  return 0
 
 
 def _add_place_overview(place: Place, uttr: Utterance):

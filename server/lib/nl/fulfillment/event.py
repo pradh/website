@@ -26,7 +26,7 @@ import server.lib.nl.fulfillment.utils as futils
 #
 
 
-def populate(uttr: nl_uttr.Utterance) -> bool:
+def populate(uttr: nl_uttr.Utterance) -> int:
   event_classification = futils.classifications_of_type_from_utterance(
       uttr, types.ClassificationType.EVENT)
   if (not event_classification or
@@ -34,7 +34,7 @@ def populate(uttr: nl_uttr.Utterance) -> bool:
                      types.EventClassificationAttributes) or
       not event_classification[0].attributes.event_types):
     uttr.counters.err('event_failed_no_event_types', 1)
-    return False
+    return 0
   event_types = event_classification[0].attributes.event_types
 
   ranking_classification = futils.classifications_of_type_from_utterance(
@@ -51,14 +51,14 @@ def populate(uttr: nl_uttr.Utterance) -> bool:
 
 
 def _populate_event(state: PopulateState,
-                    event_types: List[types.EventType]) -> bool:
+                    event_types: List[types.EventType]) -> int:
   for pl in state.uttr.places:
     if (_populate_event_for_place(state, event_types, pl)):
-      return True
+      return 1
     else:
       state.uttr.counters.err('event_failed_populate_main_place', pl.dcid)
 
-  return False
+  return 0
 
 
 def _populate_event_for_place(state: PopulateState,

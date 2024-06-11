@@ -79,22 +79,22 @@ def set_overrides(state: PopulateState):
 #
 # TODO: Consider deduping with filter_with_single_var.populate.
 def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
-             chart_origin: ChartOriginType, _: int) -> bool:
+             chart_origin: ChartOriginType, _: int) -> int:
   if chart_vars.event:
     state.uttr.counters.err('filter-with-dual-vars_failed_cb_events', 1)
-    return False
+    return 0
   if len(places) > 1:
     state.uttr.counters.err('filter-with-dual-vars_failed_cb_toomanyplaces',
                             [p.dcid for p in places])
-    return False
+    return 0
   if len(chart_vars.svs) > 1 and chart_vars.is_topic_peer_group:
     state.uttr.counters.err('filter-with-dual-vars_failed_cb_peergroupsvs',
                             chart_vars.svs)
-    return False
+    return 0
   if not state.place_type:
     state.uttr.counters.err('filter-with-dual-vars_failed_cb_missingchildtype',
                             chart_vars.svs)
-    return False
+    return 0
   if state.uttr.chartCandidates:
     # If we already have chart-candidates avoid adding more.
     # Just report we're done.
@@ -117,7 +117,7 @@ def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
 
   if not ranked_children:
     state.uttr.counters.err('filter-with-dual-vars_emptyresults', 1)
-    return False
+    return 0
 
   show_lowest = rank_utils.sort_filtered_results_lowest_first(state.quantity)
   if show_lowest:
@@ -130,7 +130,7 @@ def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
   selected_svs = _get_dual_sv_part(state.uttr, 0)
   if not selected_svs:
     state.uttr.context.err('filter-with-dual-vars_selectsvsempty', 1)
-    return False
+    return 0
 
   # Open topics if necessary.
   selected_svs = open_top_topics_ordered(selected_svs, state.uttr.counters)
@@ -149,7 +149,7 @@ def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
   if not selected_svs:
     state.uttr.counters.err('filter-with-dual-vars_selectedexistencefailed',
                             selected_svs)
-    return False
+    return 0
 
   # Compute title suffix.
   if len(ranked_children) > _MAX_PLACES_TO_RETURN:
@@ -157,17 +157,19 @@ def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
     last = f'{_MAX_PLACES_TO_RETURN} of {len(ranked_children)}'
     chart_vars.title_suffix = first + ' ' + last
 
-  found = False
+  added = 0 
   for sv in selected_svs:
     cv = copy.deepcopy(chart_vars)
     cv.svs = [sv]
-    found |= add_chart_to_utterance(
+    found = add_chart_to_utterance(
         ChartType.BAR_CHART,
         state,
         cv,
         shortlist,
         chart_origin,
         sv_place_latest_date={sv: sv_place_latest_date.get(sv, {})})
+    if found:
+      added += 1
 
   state.uttr.counters.info(
       'filter-with-dual-vars_ranked_places', {
@@ -176,4 +178,4 @@ def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
           'places': [p.name for p in shortlist],
       })
 
-  return found
+  return added

@@ -36,28 +36,26 @@ _MAX_PLACES_TO_RETURN = 7
 # Computes ranked list of places after applying the filter
 #
 def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
-             chart_origin: ChartOriginType, rank: int) -> bool:
+             chart_origin: ChartOriginType, rank: int) -> int:
   if chart_vars.event:
     state.uttr.counters.err('filter-with-single-var_failed_cb_events', 1)
-    return False
+    return 0
   if len(places) > 1:
     state.uttr.counters.err('filter-with-single-var_failed_cb_toomanyplaces',
                             [p.dcid for p in places])
-    return False
+    return 0
   if len(chart_vars.svs) > 1 and chart_vars.is_topic_peer_group:
     state.uttr.counters.err('filter-with-single-var_failed_cb_peergroupsvs',
                             chart_vars.svs)
-    return False
+    return 0
   if not state.place_type:
     state.uttr.counters.err('filter-with-single-var_failed_cb_missingchildtype',
                             chart_vars.svs)
-    return False
+    return 0
   if state.uttr.chartCandidates:
     # If we already have chart-candidates avoid adding more.
     # Just report we're done.
     return True
-
-  found = False
 
   sv = chart_vars.svs[0]
   chart_vars = copy.deepcopy(chart_vars)
@@ -81,7 +79,7 @@ def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
 
   if not ranked_children:
     state.uttr.counters.err('filter-with-single-var_emptyresults', 1)
-    return False
+    return 0
 
   show_lowest = rank_utils.sort_filtered_results_lowest_first(state.quantity)
   if show_lowest:
@@ -103,12 +101,12 @@ def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
 
   for child in ranked_children:
     sv_place_latest_date[sv][child.dcid] = sv_place_latest_date[sv][place_key]
-  found |= add_chart_to_utterance(ChartType.BAR_CHART,
-                                  state,
-                                  chart_vars,
-                                  shortlist,
-                                  chart_origin,
-                                  sv_place_latest_date=sv_place_latest_date)
+  found = add_chart_to_utterance(ChartType.BAR_CHART,
+                                 state,
+                                 chart_vars,
+                                 shortlist,
+                                 chart_origin,
+                                 sv_place_latest_date=sv_place_latest_date)
 
   state.uttr.counters.info('filter-with-single-var_ranked_places', {
       'sv': sv,
@@ -116,4 +114,4 @@ def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
       'places': [p.name for p in shortlist],
   })
 
-  return found
+  return 1 if found else 0

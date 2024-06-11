@@ -45,23 +45,23 @@ _PLACE_TYPE_FALLBACK_THRESHOLD_RANK = 5
 
 
 def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
-             chart_origin: ChartOriginType, rank: int) -> bool:
+             chart_origin: ChartOriginType, rank: int) -> int:
   if chart_vars.event:
     state.uttr.counters.err('basic_failed_cb_events', 1)
-    return False
+    return 0
   if not chart_vars:
     state.uttr.counters.err('basic_failed_cb_missing_chart_vars', 1)
-    return False
+    return 0
   if not chart_vars.svs:
     state.uttr.counters.err('basic_failed_cb_missing_svs', 1)
-    return False
+    return 0
   if not places:
     state.uttr.counters.err('basic_failed_cb_noplace', '')
-    return False
+    return 0
   if len(places) > 1:
     state.uttr.counters.err('basic_failed_cb_toomanyplaces',
                             [p.dcid for p in places])
-    return False
+    return 0
 
   if chart_vars.source_topic != PROJECTED_TEMP_TOPIC:
     return _populate_explore(state, chart_vars, places, chart_origin, rank)
@@ -71,8 +71,8 @@ def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
 
 def _populate_explore(state: PopulateState, chart_vars: ChartVars,
                       places: List[Place], chart_origin: ChartOriginType,
-                      rank: int) -> bool:
-  added = False
+                      rank: int) -> int:
+  added = 0
 
   # For peer-groups, add multi-line charts.
   max_rank_and_map_charts = _get_max_rank_and_map_charts(chart_vars, state)
@@ -86,7 +86,7 @@ def _populate_explore(state: PopulateState, chart_vars: ChartVars,
 
   # If user didn't ask for ranking, show timeline+highlight first.
   if not user_set_child_type and chart_vars.is_topic_peer_group:
-    added |= simple.populate(state, chart_vars, places, chart_origin, rank)
+    added += simple.populate(state, chart_vars, places, chart_origin, rank)
 
   cv = copy.deepcopy(chart_vars)
   for sv in chart_vars.svs[:max_rank_and_map_charts]:
@@ -94,11 +94,11 @@ def _populate_explore(state: PopulateState, chart_vars: ChartVars,
 
     # If user didn't ask for ranking, show timeline+highlight first.
     if not user_set_child_type and not cv.is_topic_peer_group:
-      added |= simple.populate(state, cv, places, chart_origin, rank)
+      added += simple.populate(state, cv, places, chart_origin, rank)
 
     if state.place_type:
       # If this is SDG, unless user has asked for ranking, do not return!
-      added_child_type_charts = False
+      added_child_type_charts = 0
       if not is_special_dc or state.ranking_types:
         ranking_orig = state.ranking_types
         if not state.ranking_types:
@@ -119,40 +119,43 @@ def _populate_explore(state: PopulateState, chart_vars: ChartVars,
 
       if added_child_type_charts:
         _maybe_set_place_type_existence(state, rank)
-      added |= added_child_type_charts
+      added += added_child_type_charts
 
     # If user had asked for ranking, show timeline+highlight last.
     if user_set_child_type and not cv.is_topic_peer_group:
-      added |= simple.populate(state, cv, places, chart_origin, rank)
+      added += simple.populate(state, cv, places, chart_origin, rank)
 
   # If user had asked for ranking, show timeline+highlight last.
   if user_set_child_type and chart_vars.is_topic_peer_group:
-    added |= simple.populate(state, chart_vars, places, chart_origin, rank)
+    added += simple.populate(state, chart_vars, places, chart_origin, rank)
 
   return added
 
 
 def _populate_legacy(state: PopulateState, chart_vars: ChartVars,
                      places: List[Place], chart_origin: ChartOriginType,
-                     rank: int) -> bool:
+                     rank: int) -> int:
   if state.ranking_types:
     # Ranking query
     if state.place_type:
       # This is ranking across places.
-      if ranking_across_places.populate(state, chart_vars, places, chart_origin,
-                                        rank):
+      ncharts = ranking_across_places.populate(state, chart_vars, places, chart_origin,
+                                               rank)
+      if ncharts:
         _maybe_set_place_type_existence(state, rank)
-        return True
+        return ncharts
     else:
       # This is ranking across vars.
-      if ranking_across_vars.populate(state, chart_vars, places, chart_origin,
-                                      rank):
-        return True
+      ncharts = ranking_across_vars.populate(state, chart_vars, places, chart_origin,
+                                             rank)
+      if ncharts:
+        return ncharts
 
   if state.place_type:
-    if containedin.populate(state, chart_vars, places, chart_origin, rank):
+    ncharts = containedin.populate(state, chart_vars, places, chart_origin, rank)
+    if ncharts:
       _maybe_set_place_type_existence(state, rank)
-      return True
+      return ncharts
 
   return simple.populate(state, chart_vars, places, chart_origin, rank)
 

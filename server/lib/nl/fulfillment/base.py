@@ -35,11 +35,10 @@ from server.lib.nl.fulfillment.handlers import get_populate_handlers
 from server.lib.nl.fulfillment.types import PopulateState
 from server.lib.nl.fulfillment.utils import handle_contained_in_type
 
-# Limit the number of charts.  Each chart may double for per-capita.
-# With 3 per row max, allow up to 2 rows, without any per-capita.
-_DEFAULT_MAX_NUM_CHARTS = 15
+# Limit the number of charts.
+_DEFAULT_MAX_NUM_CHARTS = 45
 # TODO: This is a temp hack for undata DC.
-_EXTREME_MAX_NUM_CHARTS = 50
+_EXTREME_MAX_NUM_CHARTS = 150
 
 # Do not do extension API calls for more than these many SVs
 _MAX_EXTENSION_SVS = 5
@@ -222,19 +221,21 @@ def _add_charts_with_existence_check(state: PopulateState,
       chart_vars = copy.deepcopy(exist_cv)
       if chart_vars.event:
         if exist_cv.exist_event:
-          if handler.module.populate(state, chart_vars, places,
-                                     ChartOriginType.PRIMARY_CHART, idx):
+          nc = handler.module.populate(state, chart_vars, places,
+                                       ChartOriginType.PRIMARY_CHART, idx)
+          if nc:
             found = True
-            num_charts += 1
+            num_charts += nc
           else:
             state.uttr.counters.err('failed_populate_callback_primary_event', 1)
       else:
         if chart_vars.svs:
           existing_svs.update(chart_vars.svs)
-          if handler.module.populate(state, chart_vars, places,
-                                     ChartOriginType.PRIMARY_CHART, idx):
+          nc = handler.module.populate(state, chart_vars, places,
+                                       ChartOriginType.PRIMARY_CHART, idx)
+          if nc:
             found = True
-            num_charts += 1
+            num_charts += nc
           else:
             state.uttr.counters.err('failed_populate_callback_primary', 1)
 
@@ -340,10 +341,11 @@ def _add_charts_for_extended_svs(state: PopulateState, places: List[Place],
       printed_sv_extensions.add(exist_svs_key)
 
       # Add this as a secondary chart.
-      if simple.populate(state, chart_vars, places,
-                         ChartOriginType.SECONDARY_CHART, _MAX_RANK):
+      nc = simple.populate(state, chart_vars, places,
+                           ChartOriginType.SECONDARY_CHART, _MAX_RANK)
+      if nc:
         found = True
-        num_charts += 1
+        num_charts += nc
       else:
         state.uttr.counters.err('failed_populate_callback_secondary', 1)
 

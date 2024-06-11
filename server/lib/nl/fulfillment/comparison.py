@@ -43,19 +43,19 @@ def _get_info_message(exist_places: List[Place], all_places: List[Place]):
 
 
 def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
-             chart_origin: ChartOriginType, rank: int) -> bool:
+             chart_origin: ChartOriginType, rank: int) -> int:
   if len(places) < 2:
     state.uttr.counters.err('comparison_failed_cb_toofewplaces', 1)
-    return False
+    return 0
   if chart_vars.event:
     state.uttr.counters.err('comparison_failed_cb_events', 1)
-    return False
+    return 0
 
   if rank == 0:
     dcids = [p.dcid for p in places]
     state.uttr.counters.info('comparison_place_candidates', dcids)
 
-  found = False
+  added = 0
   if not chart_vars.is_topic_peer_group:
     for i, sv in enumerate(chart_vars.svs):
       exist_places = [
@@ -74,13 +74,14 @@ def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
       cv.svs = [sv]
       sv_place_latest_date = ext.get_sv_place_latest_date([sv], places, None,
                                                           state.exist_checks)
-      found |= add_chart_to_utterance(ChartType.BAR_CHART,
-                                      state,
-                                      cv,
-                                      exist_places,
-                                      chart_origin,
-                                      info_message=info_msg,
-                                      sv_place_latest_date=sv_place_latest_date)
+      if add_chart_to_utterance(ChartType.BAR_CHART,
+                                state,
+                                cv,
+                                exist_places,
+                                chart_origin,
+                                info_message=info_msg,
+                                sv_place_latest_date=sv_place_latest_date):
+        added += 1
   else:
     exist_svs = []
     # Pick variables that exist in at least 2 place, so each variable is comparable.
@@ -90,7 +91,7 @@ def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
         exist_svs.append(sv)
     if not exist_svs:
       state.uttr.counters.err('comparison_failed_varexistence', 1)
-      return False
+      return 0
     # Pick places that exist for at least one of these variables.
     exist_places = []
     for p in places:
@@ -98,24 +99,25 @@ def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
         exist_places.append(p)
     if len(exist_places) <= 1:
       state.uttr.counters.err('comparison_failed_placeexistence', 1)
-      return False
+      return 0
 
     info_msg = _get_info_message(exist_places, places)
     places = exist_places
     chart_vars.svs = exist_svs
     sv_place_latest_date = ext.get_sv_place_latest_date(exist_svs, places, None,
                                                         state.exist_checks)
-    found |= add_chart_to_utterance(ChartType.BAR_CHART,
-                                    state,
-                                    chart_vars,
-                                    places,
-                                    chart_origin,
-                                    info_message=info_msg,
-                                    sv_place_latest_date=sv_place_latest_date)
+    if add_chart_to_utterance(ChartType.BAR_CHART,
+                              state,
+                              chart_vars,
+                              places,
+                              chart_origin,
+                              info_message=info_msg,
+                              sv_place_latest_date=sv_place_latest_date):
+      added += 1
 
-  if not found:
+  if not added:
     state.uttr.counters.err('failed_comparison_existence', '')
-    return False
+    return 0
 
   # If this is the top result, add to answer place.
   if rank == 0 and places:
@@ -123,4 +125,4 @@ def populate(state: PopulateState, chart_vars: ChartVars, places: List[Place],
     state.uttr.answerPlaces = ans_places
     state.uttr.counters.info('comparison_answer_places',
                              [p.dcid for p in ans_places])
-  return True
+  return added
